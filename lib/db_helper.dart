@@ -1,0 +1,70 @@
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'dart:io' show Platform;
+import 'dart:convert'; // Add this import at the top of the file
+
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
+
+  DatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('app_database.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    // Initialize FFI for desktop platforms
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+    }
+
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+    
+    print('Database path: $path');  // Add this line
+
+    return await openDatabase(path, version: 1, onCreate: _createDB);
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE items (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        value TEXT NOT NULL,
+        parent TEXT
+      )
+    ''');
+  }
+
+  Future<void> insertItem(String id, String type, String value, {String? parent}) async {
+    final db = await database;
+    await db.insert('items', {
+      'id': id,
+      'type': type,
+      'value': value,
+      'parent': parent,
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> getItems() async {
+    final db = await database;
+    return db.query('items');
+  }
+
+  Future<void> printAllItems() async {
+    final db = await database;
+    final items = await db.query('items');
+    print('All items in database:');
+    for (var item in items) {
+      final prettyJson = JsonEncoder.withIndent('  ').convert(item);
+      print(prettyJson);
+      print('---'); // Separator between items
+    }
+  }
+}

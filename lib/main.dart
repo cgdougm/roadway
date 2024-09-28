@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:cross_file/cross_file.dart';
+import 'package:provider/provider.dart';
+import 'package:dotted_border/dotted_border.dart';
+import 'app_state.dart';
+import 'db_helper.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AppState(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -32,7 +42,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Ingest Dropped File'),
     );
   }
 }
@@ -70,13 +80,58 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             _droppedFilePath = detail.files.first.path;
           });
+          _showDroppedFilesDialog(context, detail.files);
         },
         child: Center(
           child: _droppedFilePath == null
-              ? const Text('Drop a text file here')
-              : Text('Dropped file path: $_droppedFilePath'),
+              ? DottedBorder(
+                  color: Colors.grey,
+                  strokeWidth: 5,
+                  dashPattern: [10, 5],
+                  child: const Text('Drop a file'),
+                  borderPadding: EdgeInsets.all(-10),
+                )
+              : Text('Dropped:   $_droppedFilePath'),
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _checkDatabase,
+        tooltip: 'Check Database',
+        child: const Icon(Icons.square_outlined),
+      ),
     );
+  }
+
+  void _showDroppedFilesDialog(BuildContext context, List<XFile> files) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Dropped Files?'),
+          content: Text('Do you want to add ${files.length} dropped file(s)?'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Add'),
+              onPressed: () {
+                Provider.of<AppState>(context, listen: false)
+                    .handleDroppedFiles(files);
+                print("Adding ${files.length} files");
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _checkDatabase() async {
+    await DatabaseHelper.instance.printAllItems();
   }
 }
