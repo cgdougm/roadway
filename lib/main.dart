@@ -64,25 +64,16 @@ class _MyHomePageState extends State<MyHomePage> {
         existingFiles.add(filePath);
       } else {
         newFiles.add(filePath);
-        await DatabaseHelper.instance.insertItemIfNotExists(
-          id,
-          'file',
-          filePath,
-          parent: path.dirname(filePath),
-        );
       }
     }
 
     setState(() {
       _droppedFilePaths = filePaths;
-      if (existingFiles.isNotEmpty) {
-        _message = '${existingFiles.length} file(s) already exist and will be skipped.';
-      } else {
-        _message = 'All files added to database successfully.';
-      }
     });
 
-    _showDroppedFilesDialog(newFiles, existingFiles);
+    if (newFiles.isNotEmpty || existingFiles.isNotEmpty) {
+      _showDroppedFilesDialog(newFiles, existingFiles);
+    }
   }
 
   void _showDroppedFilesDialog(List<String> newFiles, List<String> existingFiles) {
@@ -90,33 +81,71 @@ class _MyHomePageState extends State<MyHomePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Dropped Files'),
+          title: Text(newFiles.isEmpty ? 'Files Already Exist' : 'Confirm File Addition'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 if (newFiles.isNotEmpty) ...[
-                  Text('New files added:'),
+                  Text('New files to be added:'),
                   ...newFiles.map((file) => Text('- ${path.basename(file)}')),
                   SizedBox(height: 10),
                 ],
                 if (existingFiles.isNotEmpty) ...[
-                  Text('Files already in database (skipped):'),
+                  Text('Files already in database ${newFiles.isEmpty ? '(no action needed)' : '(will be skipped)'}:'),
                   ...existingFiles.map((file) => Text('- ${path.basename(file)}')),
                 ],
               ],
             ),
           ),
           actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
+            if (newFiles.isNotEmpty) ...[
+              TextButton(
+                child: Text('Cancel'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _droppedFilePaths = [];
+                    _message = 'Operation cancelled. No files were added.';
+                  });
+                },
+              ),
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _commitNewFiles(newFiles);
+                },
+              ),
+            ] else 
+              TextButton(
+                child: Text('Close'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    _droppedFilePaths = [];
+                    _message = 'All files already exist in the database. No changes made.';
+                  });
+                },
+              ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _commitNewFiles(List<String> newFiles) async {
+    for (String filePath in newFiles) {
+      final id = _generateId(filePath);
+      await DatabaseHelper.instance.insertItemIfNotExists(
+        id,
+        'file',
+        filePath,
+        parent: path.dirname(filePath),
+      );
+    }
+    setState(() {
+      _message = '${newFiles.length} new file(s) added to database successfully.';
+    });
   }
 
   void _checkDatabase() async {
