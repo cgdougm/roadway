@@ -67,4 +67,39 @@ class DatabaseHelper {
       print('---'); // Separator between items
     }
   }
+
+  Future<bool> itemExists(String id) async {
+    final db = await database;
+    final result = await db.query(
+      'items',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<void> insertItemIfNotExists(String id, String type, String value, {String? parent}) async {
+    final db = await database;
+    final exists = await itemExists(id);
+    if (!exists) {
+      await db.insert('items', {
+        'id': id,
+        'type': type,
+        'value': value,
+        'parent': parent,
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> getItem(String id) async {
+    final db = await database;
+    final results = await db.query(
+      'items',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
 }
