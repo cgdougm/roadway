@@ -7,6 +7,8 @@ import 'db_helper.dart';
 import 'package:path/path.dart' as path;
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'package:pasteboard/pasteboard.dart';
 
 void main() {
   runApp(
@@ -45,6 +47,21 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool _dragging = false;
   List<String> _droppedFilePaths = [];
+  bool _clipboardHasContent = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkClipboard();
+  }
+
+  Future<void> _checkClipboard() async {
+    final clipboardContent = await Pasteboard.text;
+    setState(() {
+      _clipboardHasContent =
+          clipboardContent != null && clipboardContent.isNotEmpty;
+    });
+  }
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -84,12 +101,15 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  void _showDroppedFilesDialog(List<String> newFiles, List<String> existingFiles) {
+  void _showDroppedFilesDialog(
+      List<String> newFiles, List<String> existingFiles) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(newFiles.isEmpty ? 'Files Already Exist' : 'Confirm File Addition'),
+          title: Text(newFiles.isEmpty
+              ? 'Files Already Exist'
+              : 'Confirm File Addition'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -99,8 +119,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   SizedBox(height: 10),
                 ],
                 if (existingFiles.isNotEmpty) ...[
-                  Text('Files already in database ${newFiles.isEmpty ? '(no action needed)' : '(will be skipped)'}:'),
-                  ...existingFiles.map((file) => Text('- ${path.basename(file)}')),
+                  Text(
+                      'Files already in database ${newFiles.isEmpty ? '(no action needed)' : '(will be skipped)'}:'),
+                  ...existingFiles
+                      .map((file) => Text('- ${path.basename(file)}')),
                 ],
               ],
             ),
@@ -124,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   _commitNewFiles(newFiles);
                 },
               ),
-            ] else 
+            ] else
               TextButton(
                 child: Text('Close'),
                 onPressed: () {
@@ -132,7 +154,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   setState(() {
                     _droppedFilePaths = [];
                   });
-                  _showSnackBar('All files already exist in the database. No changes made.');
+                  _showSnackBar(
+                      'All files already exist in the database. No changes made.');
                 },
               ),
           ],
@@ -151,11 +174,121 @@ class _MyHomePageState extends State<MyHomePage> {
         parent: path.dirname(filePath),
       );
     }
-    _showSnackBar('${newFiles.length} new file(s) added to database successfully.');
+    _showSnackBar(
+        '${newFiles.length} new file(s) added to database successfully.');
   }
 
   void _checkDatabase() async {
     await DatabaseHelper.instance.printAllItems();
+  }
+
+  Future<void> _handleClipboardContent() async {
+    final clipboardContent = await Pasteboard.text;
+    if (clipboardContent == null || clipboardContent.isEmpty) return;
+
+    final List<String> urls = [];
+    final List<String> filePaths = [];
+
+    final lines = clipboardContent.split('\n');
+    for (final line in lines) {
+      if (line.trim().isEmpty) continue;
+
+      if (line.startsWith('http://') || line.startsWith('https://')) {
+        urls.add(line.trim());
+      } else {
+        final mdMatch =
+            RegExp(r'(?:[*-]\s)?\[(?<title>.*)\]\((?<url>https?:\/\/[^\s]+)\)')
+                .firstMatch(line);
+        if (mdMatch != null) {
+          urls.add(mdMatch.namedGroup('url')!);
+        } else if (await File(line.trim()).exists()) {
+          filePaths.add(line.trim());
+        }
+      }
+    }
+
+    if (urls.isEmpty && filePaths.isEmpty) {
+      _showSnackBar('No valid URLs or file paths found in clipboard.');
+      return;
+    }
+
+    _showClipboardContentDialog(urls, filePaths);
+  }
+
+  void _showClipboardContentDialog(List<String> urls, List<String> filePaths) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Content Addition'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                if (urls.isNotEmpty) ...[
+                  Text('URLs to be added:'),
+                  ...urls.map((url) => Text('- $url')),
+                  SizedBox(height: 10),
+                ],
+                if (filePaths.isNotEmpty) ...[
+                  Text('File paths to be added:'),
+                  ...filePaths.map((file) => Text('- ${path.basename(file)}')),
+                ],
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showSnackBar('Operation cancelled. No content was added.');
+              },
+            ),
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _commitClipboardContent(urls, filePaths);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _commitClipboardContent(
+      List<String> urls, List<String> filePaths) async {
+    int addedCount = 0;
+
+    for (String url in urls) {
+      final id = _generateId(url);
+      final exists = await DatabaseHelper.instance.itemExists(id);
+      if (!exists) {
+        await DatabaseHelper.instance.insertItemIfNotExists(id, 'url', url);
+        addedCount++;
+      }
+    }
+
+    for (String filePath in filePaths) {
+      final id = _generateId(filePath);
+      final exists = await DatabaseHelper.instance.itemExists(id);
+      if (!exists) {
+        await DatabaseHelper.instance.insertItemIfNotExists(
+          id,
+          'file',
+          filePath,
+          parent: path.dirname(filePath),
+        );
+        addedCount++;
+      }
+    }
+
+    String snackMessage = addedCount > 0 ?
+      '$addedCount new item(s) added to database successfully.' 
+      : 'URL(s) or file(s) already in DB, no new items added.';
+    _showSnackBar(snackMessage);
+    _checkClipboard();
   }
 
   @override
@@ -180,33 +313,46 @@ class _MyHomePageState extends State<MyHomePage> {
           });
         },
         child: Center(
-          child: DottedBorder(
-            borderType: BorderType.RRect,
-            radius: Radius.circular(12),
-            padding: EdgeInsets.all(6),
-            color: _dragging ? Colors.blue : Colors.black,
-            strokeWidth: 2,
-            dashPattern: [8, 4],
-            child: Container(
-              height: 200,
-              width: 300,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Icon(
-                    Icons.cloud_upload,
-                    size: 40,
-                    color: _dragging ? Colors.blue : Colors.black,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              DottedBorder(
+                borderType: BorderType.RRect,
+                radius: Radius.circular(12),
+                padding: EdgeInsets.all(6),
+                color: _dragging ? Colors.blue : Colors.black,
+                strokeWidth: 2,
+                dashPattern: [8, 4],
+                child: Container(
+                  height: 200,
+                  width: 300,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Icon(
+                        Icons.cloud_upload,
+                        size: 40,
+                        color: _dragging ? Colors.blue : Colors.black,
+                      ),
+                      Text(
+                        _droppedFilePaths.isEmpty
+                            ? 'Drop files here'
+                            : '${_droppedFilePaths.length} file(s) dropped',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ],
                   ),
-                  Text(
-                    _droppedFilePaths.isEmpty
-                        ? 'Drop files here'
-                        : '${_droppedFilePaths.length} file(s) dropped',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ],
+                ),
               ),
-            ),
+              SizedBox(height: 20),
+              Tooltip(
+                message: 'URLs, MD URLs or file paths',
+                child: ElevatedButton(
+                onPressed:
+                    _clipboardHasContent ? _handleClipboardContent : null,
+                child: Text('From clipboard...'),
+              )),
+            ],
           ),
         ),
       ),

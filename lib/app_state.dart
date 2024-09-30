@@ -3,7 +3,6 @@ import 'db_helper.dart';
 import 'unique_id.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:path/path.dart' as path;
-import 'dart:io';
 
 class AppState extends ChangeNotifier {
   final List<XFile> _files = [];
