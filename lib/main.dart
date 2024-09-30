@@ -45,7 +45,15 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool _dragging = false;
   List<String> _droppedFilePaths = [];
-  String? _message;
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
 
   String _generateId(String filePath) {
     final bytes = utf8.encode(filePath);
@@ -105,8 +113,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.of(context).pop();
                   setState(() {
                     _droppedFilePaths = [];
-                    _message = 'Operation cancelled. No files were added.';
                   });
+                  _showSnackBar('Operation cancelled. No files were added.');
                 },
               ),
               TextButton(
@@ -123,8 +131,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   Navigator.of(context).pop();
                   setState(() {
                     _droppedFilePaths = [];
-                    _message = 'All files already exist in the database. No changes made.';
                   });
+                  _showSnackBar('All files already exist in the database. No changes made.');
                 },
               ),
           ],
@@ -143,9 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
         parent: path.dirname(filePath),
       );
     }
-    setState(() {
-      _message = '${newFiles.length} new file(s) added to database successfully.';
-    });
+    _showSnackBar('${newFiles.length} new file(s) added to database successfully.');
   }
 
   void _checkDatabase() async {
@@ -198,11 +204,6 @@ class _MyHomePageState extends State<MyHomePage> {
                         : '${_droppedFilePaths.length} file(s) dropped',
                     style: TextStyle(fontSize: 18),
                   ),
-                  if (_message != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: Text(_message!, style: TextStyle(color: Colors.red)),
-                    ),
                 ],
               ),
             ),
