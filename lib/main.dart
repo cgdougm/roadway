@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
-import 'package:dotted_border/dotted_border.dart';
 import 'app_state.dart';
 import 'db_helper.dart';
 import 'package:path/path.dart' as path;
@@ -47,7 +46,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   bool _dragging = false;
-  List<String> _droppedFilePaths = [];
   bool _clipboardHasContent = false;
 
   @override
@@ -93,10 +91,6 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     }
 
-    setState(() {
-      _droppedFilePaths = filePaths;
-    });
-
     if (newFiles.isNotEmpty || existingFiles.isNotEmpty) {
       _showDroppedFilesDialog(newFiles, existingFiles);
     }
@@ -134,9 +128,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text('Cancel'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                  setState(() {
-                    _droppedFilePaths = [];
-                  });
                   _showSnackBar('Operation cancelled. No files were added.');
                 },
               ),
@@ -152,9 +143,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: Text('Close'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                  setState(() {
-                    _droppedFilePaths = [];
-                  });
                   _showSnackBar(
                       'All files already exist in the database. No changes made.');
                 },
@@ -292,6 +280,16 @@ class _MyHomePageState extends State<MyHomePage> {
     _checkClipboard();
   }
 
+  void _showDraggingSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Drop file(s) to ingest'),
+        duration: Duration(days: 1), // Long duration, we'll dismiss it manually
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -310,52 +308,28 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: DropTarget(
         onDragDone: (detail) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
           _handleFileDrop(detail.files.map((xFile) => xFile.path).toList());
         },
         onDragEntered: (detail) {
           setState(() {
             _dragging = true;
           });
+          _showDraggingSnackBar();
         },
         onDragExited: (detail) {
           setState(() {
             _dragging = false;
           });
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
         },
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              DottedBorder(
-                borderType: BorderType.RRect,
-                radius: Radius.circular(12),
-                padding: EdgeInsets.all(6),
-                color: _dragging ? Colors.blue : Colors.black,
-                strokeWidth: 2,
-                dashPattern: [8, 4],
-                child: Container(
-                  height: 200,
-                  width: 300,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.cloud_upload,
-                        size: 40,
-                        color: _dragging ? Colors.blue : Colors.black,
-                      ),
-                      Text(
-                        _droppedFilePaths.isEmpty
-                            ? 'Drop files here'
-                            : '${_droppedFilePaths.length} file(s) dropped',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-            ],
+        child: Container(
+          color: _dragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+          child: Center(
+            child: Text(
+              'Your main content goes here',
+              style: TextStyle(fontSize: 18),
+            ),
           ),
         ),
       ),
