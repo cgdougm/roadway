@@ -11,6 +11,8 @@ import 'package:pasteboard/pasteboard.dart';
 import 'theme_provider.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'text_util.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import 'package:mime/mime.dart';
 
 void main() {
   runApp(
@@ -55,6 +57,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
   bool _dragging = false;
   bool _clipboardHasContent = false;
   late TabController _tabController;
+  late TextEditingController _textEditingController;
 
   @override
   void initState() {
@@ -305,6 +308,96 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     );
   }
 
+  Widget _buildDataTable() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.instance.getItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No data available'));
+        } else {
+          return Container(
+            padding: EdgeInsets.all(10),
+            child: DataTable2(
+            columns: [
+              DataColumn2(label: Text('Value'), size: ColumnSize.L),
+              DataColumn2(label: Text('ID'), size: ColumnSize.S),
+            ],
+            rows: snapshot.data!.map((item) => DataRow(cells: [
+              DataCell(
+                Row(children: [
+                  Icon(item['type'] == 'file' ? Icons.insert_drive_file : Icons.link),
+                  SizedBox(width: 10),
+                  Text(item['value']),
+                ]),
+                onTap: () => _handleDataCellTap(item),
+              ),
+              DataCell(Text(truncateStringWithEllipsis(item['id'] ?? ''))),
+            ])).toList(),
+            columnSpacing: 12,
+            horizontalMargin: 12,
+          ));
+        }
+      },
+    );
+  }
+
+  void _handleDataCellTap(Map<String, dynamic> item) {
+    if (item['type'] == 'file') {
+      final mimeType = lookupMimeType(item['value']);
+      if (mimeType?.startsWith('image/') == true) {
+        _showImageInSecondTab(item['value']);
+      } else if (mimeType?.startsWith('text/') == true) {
+        _showTextInSecondTab(item['value']);
+      }
+    } else if (item['type'] == 'url') {
+      _launchUrl(item['value']);
+    }
+    _tabController.animateTo(1); // Switch to the second tab
+  }
+
+  void _showImageInSecondTab(String imagePath) {
+    setState(() {
+      _secondTabContent = Image.file(File(imagePath));
+    });
+  }
+
+  void _showTextInSecondTab(String filePath) async {
+    final file = File(filePath);
+    final content = await file.readAsString();
+    _textEditingController = TextEditingController(text: content);
+    setState(() {
+      _secondTabContent = _buildTextEditor();
+    });
+  }
+
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (!await url_launcher.launchUrl(url)) {
+        throw 'Could not launch $url';
+      }
+    } catch (e) {
+      _showSnackBar('Error launching $url: $e');
+    }
+  }
+
+  Widget _buildTextEditor() {
+    return TextField(
+      controller: _textEditingController,
+      readOnly: true,
+      decoration: InputDecoration(
+        border: OutlineInputBorder(),
+        hintText: 'Text content',
+      ),
+    );
+  }
+
+  Widget? _secondTabContent;
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -359,7 +452,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
             controller: _tabController,
             children: [
               _buildDataTable(),
-              _buildDummyWidget(),
+              _secondTabContent ?? Center(child: Text("Select an item to view")),
             ],
           ),
         ),
@@ -370,43 +463,5 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
         child: Icon(Icons.list),
       ),
     );
-  }
-
-  Widget _buildDataTable() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.instance.getItems(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No data available'));
-        } else {
-          return Container(
-            padding: EdgeInsets.all(10),
-            child: DataTable2(
-            columns: [
-              DataColumn2(label: Text('Value'), size: ColumnSize.L),
-              DataColumn2(label: Text('ID'), size: ColumnSize.S),
-            ],
-            rows: snapshot.data!.map((item) => DataRow(cells: [
-              DataCell(Row(children: [
-                Icon(item['type'] == 'file' ? Icons.insert_drive_file : Icons.link),
-                SizedBox(width: 10),
-                Text(item['value']),
-              ])),
-              DataCell(Text(truncateStringWithEllipsis(item['id'] ?? ''))),
-            ])).toList(),
-            columnSpacing: 12,
-            horizontalMargin: 12,
-          ));
-        }
-      },
-    );
-  }
-
-  Widget _buildDummyWidget() {
-    return Center(child: Text("Placeholder Widget"));
   }
 }
