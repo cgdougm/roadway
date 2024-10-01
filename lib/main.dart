@@ -298,6 +298,15 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          Tooltip(
+            message: 'Ingest from clipboard',
+            child: IconButton(
+              icon: Icon(Icons.content_paste),
+              onPressed: _clipboardHasContent ? _handleClipboardContent : null,
+            ),
+          ),
+        ],
       ),
       body: DropTarget(
         onDragDone: (detail) {
@@ -346,13 +355,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
               SizedBox(height: 20),
-              Tooltip(
-                message: 'URLs, MD URLs or file paths',
-                child: ElevatedButton(
-                onPressed:
-                    _clipboardHasContent ? _handleClipboardContent : null,
-                child: Text('From clipboard...'),
-              )),
             ],
           ),
         ),
