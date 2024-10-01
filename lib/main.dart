@@ -8,11 +8,15 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
+import 'theme_provider.dart';
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AppState(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AppState()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -23,14 +27,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'roadway'),
-      debugShowCheckedModeBanner: false, // Add this line
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'Flutter Demo',
+          theme: themeProvider.themeData,
+          home: const MyHomePage(title: 'roadway'),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }
@@ -292,6 +297,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -302,6 +308,13 @@ class _MyHomePageState extends State<MyHomePage> {
             child: IconButton(
               icon: Icon(Icons.content_paste),
               onPressed: _clipboardHasContent ? _handleClipboardContent : null,
+            ),
+          ),
+          Tooltip(
+            message: 'Toggle theme',
+            child: IconButton(
+              icon: Icon(themeProvider.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
+              onPressed: () => themeProvider.toggleTheme(),
             ),
           ),
         ],
