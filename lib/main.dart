@@ -9,6 +9,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
 import 'theme_provider.dart';
+import 'package:data_table_2/data_table_2.dart';
+import 'text_util.dart';
 
 void main() {
   runApp(
@@ -49,14 +51,22 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
   bool _dragging = false;
   bool _clipboardHasContent = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _checkClipboard();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkClipboard() async {
@@ -318,6 +328,13 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(icon: Icon(Icons.table_chart)),
+            Tab(icon: Icon(Icons.edit)),
+          ],
+        ),
       ),
       body: DropTarget(
         onDragDone: (detail) {
@@ -338,11 +355,12 @@ class _MyHomePageState extends State<MyHomePage> {
         },
         child: Container(
           color: _dragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-          child: Center(
-            child: Text(
-              'Your main content goes here',
-              style: TextStyle(fontSize: 18),
-            ),
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDataTable(),
+              _buildDummyWidget(),
+            ],
           ),
         ),
       ),
@@ -352,5 +370,43 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Icon(Icons.list),
       ),
     );
+  }
+
+  Widget _buildDataTable() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.instance.getItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text('No data available'));
+        } else {
+          return Container(
+            padding: EdgeInsets.all(10),
+            child: DataTable2(
+            columns: [
+              DataColumn2(label: Text('Value'), size: ColumnSize.L),
+              DataColumn2(label: Text('ID'), size: ColumnSize.S),
+            ],
+            rows: snapshot.data!.map((item) => DataRow(cells: [
+              DataCell(Row(children: [
+                Icon(item['type'] == 'file' ? Icons.insert_drive_file : Icons.link),
+                SizedBox(width: 10),
+                Text(item['value']),
+              ])),
+              DataCell(Text(truncateStringWithEllipsis(item['id'] ?? ''))),
+            ])).toList(),
+            columnSpacing: 12,
+            horizontalMargin: 12,
+          ));
+        }
+      },
+    );
+  }
+
+  Widget _buildDummyWidget() {
+    return Center(child: Text("Placeholder Widget"));
   }
 }
