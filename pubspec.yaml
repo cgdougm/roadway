@@ -99,3 +99,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+  fonts:
+    - family: HeptaSlab
+      fonts:
+        - asset: fonts/HeptaSlab-Bold.ttf
+          weight: 500
+        - asset: fonts/HeptaSlab-Regular.ttf
+        - asset: fonts/HeptaSlab-Light.ttf
+          weight: 100
+    - family: RobotoMono
+      fonts:
+        - asset: fonts/RobotoMono-Regular.ttf
+        - asset: fonts/RobotoMono-Bold.ttf
+          weight: 700
+    - family: Courier
+      fonts:
+        - asset: fonts/CourierPrime-Regular.ttf
+
