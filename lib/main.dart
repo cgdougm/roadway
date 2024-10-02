@@ -13,7 +13,10 @@ import 'package:data_table_2/data_table_2.dart';
 import 'text_util.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
+import 'theme_colors.dart';
 
+const bool isDev = false; 
+// toggle diagnostic view
 void main() {
   runApp(
     MultiProvider(
@@ -53,7 +56,8 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateMixin {
+class _MyHomePageState extends State<MyHomePage>
+    with SingleTickerProviderStateMixin {
   bool _dragging = false;
   bool _clipboardHasContent = false;
   late TabController _tabController;
@@ -291,9 +295,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
       }
     }
 
-    String snackMessage = addedCount > 0 ?
-      '$addedCount new item(s) added to database successfully.' 
-      : 'URL(s) or file(s) already in DB, no new items added.';
+    String snackMessage = addedCount > 0
+        ? '$addedCount new item(s) added to database successfully.'
+        : 'URL(s) or file(s) already in DB, no new items added.';
     _showSnackBar(snackMessage);
     _checkClipboard();
   }
@@ -320,26 +324,31 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           return Center(child: Text('No data available'));
         } else {
           return Container(
-            padding: EdgeInsets.all(10),
-            child: DataTable2(
-            columns: [
-              DataColumn2(label: Text('Value'), size: ColumnSize.L),
-              DataColumn2(label: Text('ID'), size: ColumnSize.S),
-            ],
-            rows: snapshot.data!.map((item) => DataRow(cells: [
-              DataCell(
-                Row(children: [
-                  Icon(item['type'] == 'file' ? Icons.insert_drive_file : Icons.link),
-                  SizedBox(width: 10),
-                  Text(item['value']),
-                ]),
-                onTap: () => _handleDataCellTap(item),
-              ),
-              DataCell(Text(truncateStringWithEllipsis(item['id'] ?? ''))),
-            ])).toList(),
-            columnSpacing: 12,
-            horizontalMargin: 12,
-          ));
+              padding: EdgeInsets.all(10),
+              child: DataTable2(
+                columns: [
+                  DataColumn2(label: Text('Value'), size: ColumnSize.L),
+                  DataColumn2(label: Text('ID'), size: ColumnSize.S),
+                ],
+                rows: snapshot.data!
+                    .map((item) => DataRow(cells: [
+                          DataCell(
+                            Row(children: [
+                              Icon(item['type'] == 'file'
+                                  ? Icons.insert_drive_file
+                                  : Icons.link),
+                              SizedBox(width: 10),
+                              Text(item['value']),
+                            ]),
+                            onTap: () => _handleDataCellTap(item),
+                          ),
+                          DataCell(Text(
+                              truncateStringWithEllipsis(item['id'] ?? ''))),
+                        ]))
+                    .toList(),
+                columnSpacing: 12,
+                horizontalMargin: 12,
+              ));
         }
       },
     );
@@ -370,7 +379,7 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     final content = await file.readAsString();
     _textEditingController = TextEditingController(text: content);
     setState(() {
-      _secondTabContent = _buildTextEditor();
+      _secondTabContent = _buildTextEditor(filePath);
     });
   }
 
@@ -385,16 +394,57 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
     }
   }
 
-  Widget _buildTextEditor() {
-    return TextField(
-      controller: _textEditingController,
-      readOnly: true,
-      decoration: InputDecoration(
-        border: OutlineInputBorder(),
-        hintText: 'Text content',
-      ),
-    );
-  }
+Widget _buildTextEditor(String filePath) {
+  return Builder(
+    builder: (BuildContext context) {
+      final colorScheme = Theme.of(context).colorScheme;
+
+      return Column(
+        children: [
+          Container(
+            color: colorScheme.tertiary,
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            child: Text(
+              filePath, 
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontFamily: 'Courier', 
+                fontWeight: FontWeight.bold, 
+                fontSize: 16, 
+                color: colorScheme.onTertiary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(30),
+              child: TextField(
+                controller: _textEditingController,
+                expands: true,
+                minLines: null,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                decoration: InputDecoration(
+                  hintText: 'Text content',
+                  fillColor: colorScheme.background,
+                  filled: true,
+                ),
+              ),
+            ),
+          ),
+          isDev ?Expanded(
+            child: Container(
+              padding: EdgeInsets.all(30),
+              child: ThemeColorPalette(),
+            ),
+          ) : Container(),
+        ],
+      );
+    },
+  );
+}
 
   Widget? _secondTabContent;
 
@@ -416,7 +466,9 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
           Tooltip(
             message: 'Toggle theme',
             child: IconButton(
-              icon: Icon(themeProvider.isDarkMode ? Icons.wb_sunny : Icons.nightlight_round),
+              icon: Icon(themeProvider.isDarkMode
+                  ? Icons.wb_sunny
+                  : Icons.nightlight_round),
               onPressed: () => themeProvider.toggleTheme(),
             ),
           ),
@@ -452,7 +504,8 @@ class _MyHomePageState extends State<MyHomePage> with SingleTickerProviderStateM
             controller: _tabController,
             children: [
               _buildDataTable(),
-              _secondTabContent ?? Center(child: Text("Select an item to view")),
+              _secondTabContent ??
+                  Center(child: Text("Select an item to view")),
             ],
           ),
         ),
