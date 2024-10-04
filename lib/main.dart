@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 import 'app_state.dart';
 import 'db_helper.dart';
 import 'package:path/path.dart' as path;
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
 import 'theme_provider.dart';
@@ -13,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
 import 'theme_colors.dart';
 import 'data_table_component.dart';
+import 'text_util.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -36,7 +35,7 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, child) {
         return MaterialApp(
-          title: 'Flutter Demo',
+          title: 'Roadway',
           theme: themeProvider.themeData,
           home: const MyHomePage(title: 'roadway'),
           debugShowCheckedModeBanner: false,
@@ -87,14 +86,9 @@ class _MyHomePageState extends State<MyHomePage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
-  }
-
-  String _generateId(String filePath) {
-    final bytes = utf8.encode(filePath);
-    return sha256.convert(bytes).toString();
   }
 
   Future<void> _handleFileDrop(List<String> filePaths) async {
@@ -102,7 +96,7 @@ class _MyHomePageState extends State<MyHomePage>
     List<String> existingFiles = [];
 
     for (String filePath in filePaths) {
-      final id = _generateId(filePath);
+      final id = generateId(filePath);
       final exists = await DatabaseHelper.instance.itemExists(id);
 
       if (exists) {
@@ -176,7 +170,7 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> _commitNewFiles(List<String> newFiles) async {
     for (String filePath in newFiles) {
-      final id = _generateId(filePath);
+      final id = generateId(filePath);
       await DatabaseHelper.instance.insertItemIfNotExists(
         id,
         'file',
@@ -272,7 +266,7 @@ class _MyHomePageState extends State<MyHomePage>
     int addedCount = 0;
 
     for (String url in urls) {
-      final id = _generateId(url);
+      final id = generateId(url);
       final exists = await DatabaseHelper.instance.itemExists(id);
       if (!exists) {
         await DatabaseHelper.instance.insertItemIfNotExists(id, 'url', url);
@@ -281,7 +275,7 @@ class _MyHomePageState extends State<MyHomePage>
     }
 
     for (String filePath in filePaths) {
-      final id = _generateId(filePath);
+      final id = generateId(filePath);
       final exists = await DatabaseHelper.instance.itemExists(id);
       if (!exists) {
         await DatabaseHelper.instance.insertItemIfNotExists(
