@@ -14,6 +14,7 @@ import 'text_util.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
 import 'theme_colors.dart';
+import 'data_table_component.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -304,53 +305,11 @@ class _MyHomePageState extends State<MyHomePage>
 
   void _showDraggingSnackBar() {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Drop file(s) to ingest'),
         duration: Duration(days: 1), // Long duration, we'll dismiss it manually
         backgroundColor: Colors.blue,
       ),
-    );
-  }
-
-  Widget _buildDataTable() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.instance.getItems(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No data available'));
-        } else {
-          return Container(
-              padding: EdgeInsets.all(10),
-              child: DataTable2(
-                columns: [
-                  DataColumn2(label: Text('Value'), size: ColumnSize.L),
-                  DataColumn2(label: Text('ID'), size: ColumnSize.S),
-                ],
-                rows: snapshot.data!
-                    .map((item) => DataRow(cells: [
-                          DataCell(
-                            Row(children: [
-                              Icon(item['type'] == 'file'
-                                  ? Icons.insert_drive_file
-                                  : Icons.link),
-                              SizedBox(width: 10),
-                              Text(item['value']),
-                            ]),
-                            onTap: () => _handleDataCellTap(item),
-                          ),
-                          DataCell(Text(
-                              truncateStringWithEllipsis(item['id'] ?? ''))),
-                        ]))
-                    .toList(),
-                columnSpacing: 12,
-                horizontalMargin: 12,
-              ));
-        }
-      },
     );
   }
 
@@ -404,7 +363,7 @@ class _MyHomePageState extends State<MyHomePage>
             Container(
               color: colorScheme.tertiary,
               width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               child: Text(
                 filePath,
                 textAlign: TextAlign.left,
@@ -418,17 +377,17 @@ class _MyHomePageState extends State<MyHomePage>
             ),
             Expanded(
               child: Container(
-                padding: EdgeInsets.all(30),
+                padding: const EdgeInsets.all(30),
                 child: TextField(
                   controller: _textEditingController,
                   expands: true,
                   minLines: null,
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
-                  style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                  style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
                   decoration: InputDecoration(
                     hintText: 'Text content',
-                    fillColor: colorScheme.background,
+                    fillColor: colorScheme.surface,
                     filled: true,
                   ),
                 ),
@@ -437,7 +396,7 @@ class _MyHomePageState extends State<MyHomePage>
             isDev
                 ? Expanded(
                     child: Container(
-                      padding: EdgeInsets.all(30),
+                      padding: const EdgeInsets.all(30),
                       child: ThemeColorPalette(),
                     ),
                   )
@@ -461,7 +420,7 @@ class _MyHomePageState extends State<MyHomePage>
           Tooltip(
             message: 'Ingest from clipboard',
             child: IconButton(
-              icon: Icon(Icons.content_paste),
+              icon: const Icon(Icons.content_paste),
               onPressed: _clipboardHasContent ? _handleClipboardContent : null,
             ),
           ),
@@ -477,7 +436,7 @@ class _MyHomePageState extends State<MyHomePage>
         ],
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
+          tabs: const [
             Tab(icon: Icon(Icons.table_chart)),
             Tab(icon: Icon(Icons.edit)),
           ],
@@ -505,9 +464,9 @@ class _MyHomePageState extends State<MyHomePage>
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildDataTable(),
+              DataTableComponent(onDataCellTap: _handleDataCellTap),
               _secondTabContent ??
-                  Center(child: Text("Select an item to view")),
+                  const Center(child: Text("Select an item to view")),
             ],
           ),
         ),
@@ -515,7 +474,7 @@ class _MyHomePageState extends State<MyHomePage>
       floatingActionButton: FloatingActionButton(
         onPressed: _checkDatabase,
         tooltip: 'DB console dump',
-        child: Icon(Icons.list),
+        child: const Icon(Icons.list),
       ),
     );
   }
