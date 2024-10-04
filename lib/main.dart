@@ -409,6 +409,22 @@ class _MyHomePageState extends State<MyHomePage>
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
+          // Add the Data menu
+          PopupMenuButton<String>(
+            tooltip: 'Settings',
+            icon: Icon(Icons.settings),
+            onSelected: (String result) {
+              if (result == 'dump') {
+                _checkDatabase();
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'dump',
+                child: Text('Dump to console'),
+              ),
+            ],
+          ),
           Tooltip(
             message: 'Ingest from clipboard',
             child: IconButton(
@@ -462,11 +478,6 @@ class _MyHomePageState extends State<MyHomePage>
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _checkDatabase,
-        tooltip: 'DB console dump',
-        child: const Icon(Icons.list),
       ),
     );
   }
