@@ -6,7 +6,7 @@ import 'text_util.dart';
 class DataTableComponent extends StatelessWidget {
   final Function(Map<String, dynamic>) onDataCellTap;
 
-  const DataTableComponent({Key? key, required this.onDataCellTap}) : super(key: key);
+  const DataTableComponent({super.key, required this.onDataCellTap});
 
   @override
   Widget build(BuildContext context) {
