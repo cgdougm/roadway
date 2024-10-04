@@ -15,7 +15,7 @@ import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
 import 'theme_colors.dart';
 
-const bool isDev = false; 
+const bool isDev = false;
 // toggle diagnostic view
 void main() {
   runApp(
@@ -394,57 +394,59 @@ class _MyHomePageState extends State<MyHomePage>
     }
   }
 
-Widget _buildTextEditor(String filePath) {
-  return Builder(
-    builder: (BuildContext context) {
-      final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildTextEditor(String filePath) {
+    return Builder(
+      builder: (BuildContext context) {
+        final colorScheme = Theme.of(context).colorScheme;
 
-      return Column(
-        children: [
-          Container(
-            color: colorScheme.tertiary,
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-            child: Text(
-              filePath, 
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontFamily: 'Courier', 
-                fontWeight: FontWeight.bold, 
-                fontSize: 16, 
-                color: colorScheme.onTertiary,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(30),
-              child: TextField(
-                controller: _textEditingController,
-                expands: true,
-                minLines: null,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
-                decoration: InputDecoration(
-                  hintText: 'Text content',
-                  fillColor: colorScheme.background,
-                  filled: true,
+        return Column(
+          children: [
+            Container(
+              color: colorScheme.tertiary,
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+              child: Text(
+                filePath,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  fontFamily: 'Courier',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: colorScheme.onTertiary,
                 ),
               ),
             ),
-          ),
-          isDev ?Expanded(
-            child: Container(
-              padding: EdgeInsets.all(30),
-              child: ThemeColorPalette(),
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.all(30),
+                child: TextField(
+                  controller: _textEditingController,
+                  expands: true,
+                  minLines: null,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  style: TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                  decoration: InputDecoration(
+                    hintText: 'Text content',
+                    fillColor: colorScheme.background,
+                    filled: true,
+                  ),
+                ),
+              ),
             ),
-          ) : Container(),
-        ],
-      );
-    },
-  );
-}
+            isDev
+                ? Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(30),
+                      child: ThemeColorPalette(),
+                    ),
+                  )
+                : Container(),
+          ],
+        );
+      },
+    );
+  }
 
   Widget? _secondTabContent;
 

@@ -14,7 +14,8 @@ class AppState extends ChangeNotifier {
   void addFile(XFile file) {
     if (!_files.any((f) => f.uniqueId == file.uniqueId)) {
       _files.add(file);
-      DatabaseHelper.instance.insertItem(file.uniqueId, 'file', file.path, parent: path.dirname(file.path));
+      DatabaseHelper.instance.insertItem(file.uniqueId, 'file', file.path,
+          parent: path.dirname(file.path));
       notifyListeners();
     }
   }
@@ -22,7 +23,8 @@ class AppState extends ChangeNotifier {
   void addURL(Uri url) {
     if (!_urls.any((u) => u.uniqueId == url.uniqueId)) {
       _urls.add(url);
-      DatabaseHelper.instance.insertItem(url.uniqueId, 'url', url.toString(), parent: url.host);
+      DatabaseHelper.instance
+          .insertItem(url.uniqueId, 'url', url.toString(), parent: url.host);
       notifyListeners();
     }
   }
@@ -34,5 +36,4 @@ class AppState extends ChangeNotifier {
     }
     notifyListeners();
   }
-
 }
