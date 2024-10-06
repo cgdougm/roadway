@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cross_file/cross_file.dart';
 import 'file_ops.dart';
-
+import 'db_helper.dart';
 
 class FileCard extends StatelessWidget {
   final XFile xfile;
@@ -23,7 +23,7 @@ class FileCard extends StatelessWidget {
           return Text('Error: ${snapshot.error}');
         } else if (snapshot.hasData) {
           final metadata = snapshot.data!;
-          final Icon icon = _getIconForMimeType(metadata['mimetype']);
+          final Icon icon = getIconForMimeType(metadata['mimetype']);
 
           final String subtitle =
               '${metadata['lastModifiedFormatted']} (${metadata['lastModifiedAgo']}) ${metadata['fileLengthFormatted']}';
@@ -43,15 +43,38 @@ class FileCard extends StatelessWidget {
       },
     );
   }
+}
 
-  // You'll need to implement this method
-  Icon _getIconForMimeType(String mimeType) {
-    if (mimeType.startsWith('text/')) {
-      return const Icon(Icons.text_snippet);
-    } else if (mimeType.startsWith('image/')) {
-      return const Icon(Icons.image);
-    } else {
-      return const Icon(Icons.file_present);
-    }
+class FileCardList extends StatelessWidget {
+  const FileCardList({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, Object?>>>(
+      future: DatabaseHelper.instance.getAllItems(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text('No items'));
+        } else {
+          final items = snapshot.data!;
+          return ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              Map<String, Object?> item = items[index];
+              if (item['type'] == 'file') {
+                String filePath = item['value'] as String;
+                return FileCard(
+                  xfile: XFile(filePath),
+                );
+              }
+            },
+          );
+        }
+      },
+    );
   }
 }
