@@ -1,3 +1,4 @@
+import 'package:desktopdroptest/file_component.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +13,8 @@ import 'package:mime/mime.dart';
 import 'theme_colors.dart';
 import 'data_table_component.dart';
 import 'text_util.dart';
+import 'package:cross_file/cross_file.dart';
+import 'dart:convert'; // Add this import at the top of the file
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -177,13 +180,21 @@ class _MyHomePageState extends State<MyHomePage>
         filePath,
         parent: path.dirname(filePath),
       );
+      // TODO: This should be used?
+      Provider.of<AppState>(context, listen: false).addFile(XFile(filePath));
     }
     _showSnackBar(
         '${newFiles.length} new file(s) added to database successfully.');
   }
 
   void _checkDatabase() async {
-    await DatabaseHelper.instance.printAllItems();
+    final List<Map<String, Object?>> items = await DatabaseHelper.instance.getAllItems();
+    print('All items in database:');
+    for (var item in items) {
+      final prettyJson = JsonEncoder.withIndent('  ').convert(item);
+      print(prettyJson);
+      print('---'); // Separator between items
+    }
   }
 
   Future<void> _handleClipboardContent() async {
@@ -404,6 +415,8 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    // TODO: use this?
+    final appState = Provider.of<AppState>(context);  
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -450,6 +463,14 @@ class _MyHomePageState extends State<MyHomePage>
           ],
         ),
       ),
+
+      drawer: const Drawer(
+        width: 600, 
+        shadowColor: Colors.black,
+        elevation: 10,
+        child: FileCardList(),
+      ),
+
       body: DropTarget(
         onDragDone: (detail) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
