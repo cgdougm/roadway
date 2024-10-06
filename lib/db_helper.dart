@@ -2,7 +2,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
-import 'dart:convert'; // Add this import at the top of the file
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -25,8 +24,8 @@ class DatabaseHelper {
 
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    
-    print('Database path: $path');  // Add this line
+
+    print('Database path: $path'); // Add this line
 
     return await openDatabase(path, version: 1, onCreate: _createDB);
   }
@@ -42,7 +41,8 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<void> insertItem(String id, String type, String value, {String? parent}) async {
+  Future<void> insertItem(String id, String type, String value,
+      {String? parent}) async {
     final db = await database;
     await db.insert('items', {
       'id': id,
@@ -60,21 +60,16 @@ class DatabaseHelper {
       whereArgs: [id],
     );
   }
-  
+
   Future<List<Map<String, dynamic>>> getItems() async {
     final db = await database;
     return db.query('items');
   }
 
-  Future<void> printAllItems() async {
+  Future<List<Map<String, Object?>>> getAllItems() async {
     final db = await database;
-    final items = await db.query('items');
-    print('All items in database:');
-    for (var item in items) {
-      final prettyJson = JsonEncoder.withIndent('  ').convert(item);
-      print(prettyJson);
-      print('---'); // Separator between items
-    }
+    final List<Map<String, Object?>> items = await db.query('items');
+    return items;
   }
 
   Future<bool> itemExists(String id) async {
@@ -88,7 +83,8 @@ class DatabaseHelper {
     return result.isNotEmpty;
   }
 
-  Future<void> insertItemIfNotExists(String id, String type, String value, {String? parent}) async {
+  Future<void> insertItemIfNotExists(String id, String type, String value,
+      {String? parent}) async {
     final db = await database;
     final exists = await itemExists(id);
     if (!exists) {
