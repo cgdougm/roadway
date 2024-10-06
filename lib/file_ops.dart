@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:mime/mime.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart'; // Added for date formatting
@@ -11,7 +12,7 @@ String formatDateTime(DateTime date, {bool withAgo = false}) {
   final formatter = DateFormat('EEE MMM d, yyyy h:mm a');
   final formattedDate = formatter.format(date);
   if (!withAgo) return formattedDate;
-  
+
   final timeAgo = getTimeAgo(date);
   return '$formattedDate ($timeAgo)';
 }
@@ -28,16 +29,27 @@ String getTimeAgo(DateTime date) {
 String formatFileSize(int fileLength) {
   if (fileLength < 1024) return '$fileLength bytes';
   if (fileLength < 1024 * 1024) return '${(fileLength / 1024).round()}K';
-  if (fileLength < 1024 * 1024 * 1024) return '${(fileLength / (1024 * 1024)).round()}M';
+  if (fileLength < 1024 * 1024 * 1024)
+    return '${(fileLength / (1024 * 1024)).round()}M';
   return '${(fileLength / (1024 * 1024 * 1024)).round()}G';
 }
 
+Icon getIconForMimeType(String mimeType) {
+  if (mimeType.startsWith('text/')) {
+    return const Icon(Icons.text_snippet);
+  } else if (mimeType.startsWith('image/')) {
+    return const Icon(Icons.image);
+  } else {
+    return const Icon(Icons.file_present);
+  }
+}
+
 /// Returns a future map with file information:
-/// 
+///
 ///  * [xFile]: the XFile object
 ///  * [filePath]: the full file path
 ///  * [fileName]: the file name portion of the path
-///  * [fileExt]: the file extension 
+///  * [fileExt]: the file extension
 ///  * [fileFolder]: the parent file folder portion of the path
 ///  * [mimetype]: the mime type string
 ///  * [fileLength]: the file length in bytes
@@ -48,7 +60,7 @@ String formatFileSize(int fileLength) {
 ///  * [image]: the decoded image data
 ///  * [imageDimensions]: the image dimensions, width and height
 ///  * [imageError]: the error message if there is an error decoding the image
-/// 
+///
 Future<Map<String, dynamic>> fileInfo({String? filePath, XFile? xFile}) async {
   XFile fileToProcess;
   Map<String, dynamic> result = {};
@@ -90,7 +102,7 @@ Future<Map<String, dynamic>> fileInfo({String? filePath, XFile? xFile}) async {
       final bytes = await file.readAsBytes();
       final image = img.decodeImage(bytes);
       result['image'] = image;
-      result['imageDimensions'] =[image?.width, image?.height];
+      result['imageDimensions'] = [image?.width, image?.height];
       result['imageDimensionsFormatted'] = '${image?.width} x ${image?.height}';
     } catch (e) {
       result['imageError'] = 'Error decoding image: $e';
