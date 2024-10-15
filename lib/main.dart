@@ -18,7 +18,11 @@ import 'dart:convert'; // Add this import at the top of the file
 
 const bool isDev = false;
 // toggle diagnostic view
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await DatabaseHelper.instance.database; // warm up DB, cache
+
   runApp(
     MultiProvider(
       providers: [
@@ -59,21 +63,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
-  bool _dragging = false;
+  bool isDragging = false;
   bool _clipboardHasContent = false;
-  late TabController _tabController;
+  late TabController tabController;
   late TextEditingController _textEditingController;
 
   @override
   void initState() {
     super.initState();
     _checkClipboard();
-    _tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    tabController.dispose();
     super.dispose();
   }
 
@@ -85,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
-  void _showSnackBar(String message) {
+  void showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -127,9 +131,9 @@ class _MyHomePageState extends State<MyHomePage>
             child: ListBody(
               children: <Widget>[
                 if (newFiles.isNotEmpty) ...[
-                  Text('New files to be added:'),
+                  const Text('New files to be added:'),
                   ...newFiles.map((file) => Text('- ${path.basename(file)}')),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                 ],
                 if (existingFiles.isNotEmpty) ...[
                   Text(
@@ -143,25 +147,25 @@ class _MyHomePageState extends State<MyHomePage>
           actions: <Widget>[
             if (newFiles.isNotEmpty) ...[
               TextButton(
-                child: Text('Cancel'),
+                child: const Text('Cancel'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _showSnackBar('Operation cancelled. No files were added.');
+                  showSnackBar('Operation cancelled. No files were added.');
                 },
               ),
               TextButton(
-                child: Text('OK'),
+                child: const Text('OK'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _commitNewFiles(newFiles);
+                  ingestNewFiles(newFiles);
                 },
               ),
             ] else
               TextButton(
-                child: Text('Close'),
+                child: const Text('Close'),
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _showSnackBar(
+                  showSnackBar(
                       'All files already exist in the database. No changes made.');
                 },
               ),
@@ -171,30 +175,26 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  Future<void> _commitNewFiles(List<String> newFiles) async {
+  Future<void> ingestNewFiles(List<String> newFiles) async {
+    AppState state = Provider.of<AppState>(context, listen: false);
     for (String filePath in newFiles) {
-      final id = generateId(filePath);
-      await DatabaseHelper.instance.insertItemIfNotExists(
-        id,
-        'file',
-        filePath,
-        parent: path.dirname(filePath),
-      );
-      // TODO: This should be used?
-      Provider.of<AppState>(context, listen: false).addFile(XFile(filePath));
+      state.addFile(XFile(filePath));
     }
-    _showSnackBar(
+    showSnackBar(
         '${newFiles.length} new file(s) added to database successfully.');
   }
 
-  void _checkDatabase() async {
-    final List<Map<String, Object?>> items = await DatabaseHelper.instance.getAllItems();
-    print('All items in database:');
+  Future<String> dumpedDbItemsAsString() async {
+    final List<Map<String, Object?>> items =
+        await context.read<AppState>().getAllItems();
+    List<String> dumpLines = [];
+    dumpLines.add('All items in database:');
     for (var item in items) {
-      final prettyJson = JsonEncoder.withIndent('  ').convert(item);
-      print(prettyJson);
-      print('---'); // Separator between items
+      final prettyJson = const JsonEncoder.withIndent('  ').convert(item);
+      dumpLines.add(prettyJson);
+      dumpLines.add('---'); // Separator between items
     }
+    return dumpLines.join('\n');
   }
 
   Future<void> _handleClipboardContent() async {
@@ -217,13 +217,13 @@ class _MyHomePageState extends State<MyHomePage>
         if (mdMatch != null) {
           urls.add(mdMatch.namedGroup('url')!);
         } else if (await File(line.trim()).exists()) {
-          filePaths.add(line.trim());
+          filePaths.add(removeEnclosingQuotes(line.trim()));
         }
       }
     }
 
     if (urls.isEmpty && filePaths.isEmpty) {
-      _showSnackBar('No valid URLs or file paths found in clipboard.');
+      showSnackBar('No valid URLs or file paths found in clipboard.');
       return;
     }
 
@@ -235,17 +235,17 @@ class _MyHomePageState extends State<MyHomePage>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Confirm Content Addition'),
+          title: const Text('Confirm Content Addition'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
                 if (urls.isNotEmpty) ...[
-                  Text('URLs to be added:'),
+                  const Text('URLs to be added:'),
                   ...urls.map((url) => Text('- $url')),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                 ],
                 if (filePaths.isNotEmpty) ...[
-                  Text('File paths to be added:'),
+                  const Text('File paths to be added:'),
                   ...filePaths.map((file) => Text('- ${path.basename(file)}')),
                 ],
               ],
@@ -253,14 +253,14 @@ class _MyHomePageState extends State<MyHomePage>
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
-                _showSnackBar('Operation cancelled. No content was added.');
+                showSnackBar('Operation cancelled. No content was added.');
               },
             ),
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
                 _commitClipboardContent(urls, filePaths);
@@ -302,7 +302,7 @@ class _MyHomePageState extends State<MyHomePage>
     String snackMessage = addedCount > 0
         ? '$addedCount new item(s) added to database successfully.'
         : 'URL(s) or file(s) already in DB, no new items added.';
-    _showSnackBar(snackMessage);
+    showSnackBar(snackMessage);
     _checkClipboard();
   }
 
@@ -316,32 +316,43 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  void _handleDataCellTap(Map<String, dynamic> item) {
+  Future<void> handleDataCellTap(Map<String, dynamic> item) async {
     if (item['type'] == 'file') {
       final mimeType = lookupMimeType(item['value']);
       if (mimeType?.startsWith('image/') == true) {
-        _showImageInSecondTab(item['value']);
+        showImageInSecondTab(item['value']);
       } else if (mimeType?.startsWith('text/') == true) {
-        _showTextInSecondTab(item['value']);
+        String content = await File(item['value']).readAsString();
+        showTextInSecondTab(content, item['value']);
       }
     } else if (item['type'] == 'url') {
       _launchUrl(item['value']);
     }
-    _tabController.animateTo(1); // Switch to the second tab
+    tabController.animateTo(1); // Switch to the second tab
   }
 
-  void _showImageInSecondTab(String imagePath) {
+  void showImageInSecondTab(String imagePath) {
     setState(() {
-      _secondTabContent = Image.file(File(imagePath));
+      secondTabContent = Image.file(File(imagePath));
     });
   }
 
-  void _showTextInSecondTab(String filePath) async {
+  Future<void> showFutureTextInSecondTab(
+      Future<String> futureText, String title) async {
+    String content = await futureText;
+    showTextInSecondTab(content, title);
+  }
+
+  void showFileContentsInSecondTab(String filePath) async {
     final file = File(filePath);
     final content = await file.readAsString();
+    showTextInSecondTab(content, filePath);
+  }
+
+  void showTextInSecondTab(String content, [String title = 'untitled']) async {
     _textEditingController = TextEditingController(text: content);
     setState(() {
-      _secondTabContent = _buildTextEditor(filePath);
+      secondTabContent = buildTextEditor(title);
     });
   }
 
@@ -352,11 +363,11 @@ class _MyHomePageState extends State<MyHomePage>
         throw 'Could not launch $url';
       }
     } catch (e) {
-      _showSnackBar('Error launching $url: $e');
+      showSnackBar('Error launching $url: $e');
     }
   }
 
-  Widget _buildTextEditor(String filePath) {
+  Widget buildTextEditor(String title) {
     return Builder(
       builder: (BuildContext context) {
         final colorScheme = Theme.of(context).colorScheme;
@@ -368,7 +379,7 @@ class _MyHomePageState extends State<MyHomePage>
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
               child: Text(
-                filePath,
+                title,
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontFamily: 'Courier',
@@ -400,7 +411,7 @@ class _MyHomePageState extends State<MyHomePage>
                 ? Expanded(
                     child: Container(
                       padding: const EdgeInsets.all(30),
-                      child: ThemeColorPalette(),
+                      child: const ThemeColorPalette(),
                     ),
                   )
                 : Container(),
@@ -410,25 +421,23 @@ class _MyHomePageState extends State<MyHomePage>
     );
   }
 
-  Widget? _secondTabContent;
+  Widget? secondTabContent;
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    // TODO: use this?
-    final appState = Provider.of<AppState>(context);  
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
         actions: [
-          // Add the Data menu
           PopupMenuButton<String>(
             tooltip: 'Settings',
-            icon: Icon(Icons.settings),
+            icon: const Icon(Icons.settings),
             onSelected: (String result) {
               if (result == 'dump') {
-                _checkDatabase();
+                showFutureTextInSecondTab(dumpedDbItemsAsString(), 'DB Dump');
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -456,21 +465,19 @@ class _MyHomePageState extends State<MyHomePage>
           ),
         ],
         bottom: TabBar(
-          controller: _tabController,
+          controller: tabController,
           tabs: const [
             Tab(icon: Icon(Icons.table_chart)),
             Tab(icon: Icon(Icons.edit)),
           ],
         ),
       ),
-
       drawer: const Drawer(
-        width: 600, 
+        width: 400,
         shadowColor: Colors.black,
         elevation: 10,
         child: FileCardList(),
       ),
-
       body: DropTarget(
         onDragDone: (detail) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -478,23 +485,23 @@ class _MyHomePageState extends State<MyHomePage>
         },
         onDragEntered: (detail) {
           setState(() {
-            _dragging = true;
+            isDragging = true;
           });
           _showDraggingSnackBar();
         },
         onDragExited: (detail) {
           setState(() {
-            _dragging = false;
+            isDragging = false;
           });
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
         },
         child: Container(
-          color: _dragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
+          color: isDragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
           child: TabBarView(
-            controller: _tabController,
+            controller: tabController,
             children: [
-              DataTableComponent(onDataCellTap: _handleDataCellTap),
-              _secondTabContent ??
+              DataTableComponent(onDataCellTap: handleDataCellTap),
+              secondTabContent ??
                   const Center(child: Text("Select an item to view")),
             ],
           ),

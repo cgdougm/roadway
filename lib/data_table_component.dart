@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
-import 'db_helper.dart';
+import 'package:provider/provider.dart';
+import 'app_state.dart';
 import 'text_util.dart';
 
 class DataTableComponent extends StatelessWidget {
@@ -11,7 +12,7 @@ class DataTableComponent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.instance.getItems(),
+      future: context.read<AppState>().getAllItems(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());

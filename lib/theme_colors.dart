@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 class ThemeColorPalette extends StatelessWidget {
+
+  const ThemeColorPalette({super.key});
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -53,7 +56,7 @@ class ThemeColorPalette extends StatelessWidget {
                     height: 25,
                     color: entry.value,
                   ),
-                  SizedBox(width: 16),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Text(
                       entry.key,
