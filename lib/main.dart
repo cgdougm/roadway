@@ -15,6 +15,8 @@ import 'data_table_component.dart';
 import 'text_util.dart';
 import 'package:cross_file/cross_file.dart';
 import 'dart:convert'; // Add this import at the top of the file
+import 'file_ops.dart';
+import 'md_component.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -67,17 +69,22 @@ class _MyHomePageState extends State<MyHomePage>
   bool _clipboardHasContent = false;
   late TabController tabController;
   late TextEditingController _textEditingController;
+  late TextEditingController _markdownController;
 
   @override
   void initState() {
     super.initState();
     _checkClipboard();
     tabController = TabController(length: 2, vsync: this);
+    _textEditingController = TextEditingController();
+    _markdownController = TextEditingController();
   }
 
   @override
   void dispose() {
     tabController.dispose();
+    _textEditingController.dispose();
+    _markdownController.dispose();
     super.dispose();
   }
 
@@ -188,11 +195,19 @@ class _MyHomePageState extends State<MyHomePage>
     final List<Map<String, Object?>> items =
         await context.read<AppState>().getAllItems();
     List<String> dumpLines = [];
-    dumpLines.add('All items in database:');
+    dumpLines.add('# Items');
     for (var item in items) {
-      final prettyJson = const JsonEncoder.withIndent('  ').convert(item);
-      dumpLines.add(prettyJson);
-      dumpLines.add('---'); // Separator between items
+      String filePath = item['value'] as String;
+      FileInfo fileInfo = await FileInfo.fromPath(filePath);
+      // Convert FileInfo to a Map and filter out null values
+      Map<String, dynamic> mappedFileInfo = fileInfo.toMap()
+        ..removeWhere((key, value) =>
+            value == null); // Not sure why this filder is needed
+      dumpLines.add('### ${mappedFileInfo["fileName"]}');
+      dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
+      dumpLines.add('* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
+      dumpLines.add('* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
+      dumpLines.add('\n'); // Separator between items
     }
     return dumpLines.join('\n');
   }
@@ -349,10 +364,13 @@ class _MyHomePageState extends State<MyHomePage>
     showTextInSecondTab(content, filePath);
   }
 
-  void showTextInSecondTab(String content, [String title = 'untitled']) async {
-    _textEditingController = TextEditingController(text: content);
+  void showTextInSecondTab(String content, [String title = 'untitled']) {
+    _markdownController.text = content;
     setState(() {
-      secondTabContent = buildTextEditor(title);
+      secondTabContent = MarkdownEditorWidget(
+        title: title,
+        controller: _markdownController,
+      );
     });
   }
 
@@ -365,6 +383,13 @@ class _MyHomePageState extends State<MyHomePage>
     } catch (e) {
       showSnackBar('Error launching $url: $e');
     }
+  }
+
+  Widget buildMarkdownEditor(String title, String text) {
+    return Builder(builder: (BuildContext context) {
+      return MarkdownEditorWidget(
+          controller: _markdownController, title: title);
+    });
   }
 
   Widget buildTextEditor(String title) {
@@ -430,7 +455,12 @@ class _MyHomePageState extends State<MyHomePage>
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(widget.title,
+            style: const TextStyle(
+                fontFamily: 'HeptaSlab',
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+                letterSpacing: -2)),
         actions: [
           PopupMenuButton<String>(
             tooltip: 'Settings',
@@ -467,8 +497,10 @@ class _MyHomePageState extends State<MyHomePage>
         bottom: TabBar(
           controller: tabController,
           tabs: const [
-            Tab(icon: Icon(Icons.table_chart)),
-            Tab(icon: Icon(Icons.edit)),
+            Tooltip(
+                message: 'Table of items',
+                child: Tab(icon: Icon(Icons.table_chart))),
+            Tooltip(message: 'Item editor', child: Tab(icon: Icon(Icons.edit))),
           ],
         ),
       ),

@@ -217,4 +217,16 @@ class FileInfo {
 
     return result;
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'fileName': fileName,
+      'fileExt': fileExt,
+      'fileFolder': fileFolder,
+      'mimeType': mimeType,
+      'fileLengthFormatted': fileLengthFormatted,
+      'lastModifiedFormatted': lastModifiedFormatted,
+      'lastModifiedAgo': lastModifiedAgo,
+    };
+  }
 }

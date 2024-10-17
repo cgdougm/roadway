@@ -47,7 +47,9 @@ dependencies:
   image: ^4.0.17
   intl: ^0.18.0
   csv: ^5.0.1
-
+  multi_split_view: ^3.5.0
+  flutter_markdown: ^0.7.4
+  flutter_svg: 2.0.10+1
 
 dev_dependencies:
   flutter_test:
@@ -105,17 +107,19 @@ flutter:
   fonts:
     - family: HeptaSlab
       fonts:
-        - asset: fonts/HeptaSlab-Bold.ttf
+        - asset: assets/fonts/HeptaSlab-Bold.ttf
           weight: 500
-        - asset: fonts/HeptaSlab-Regular.ttf
-        - asset: fonts/HeptaSlab-Light.ttf
+        - asset: assets/fonts/HeptaSlab-Regular.ttf
+        - asset: assets/fonts/HeptaSlab-Light.ttf
           weight: 100
     - family: RobotoMono
       fonts:
-        - asset: fonts/RobotoMono-Regular.ttf
-        - asset: fonts/RobotoMono-Bold.ttf
+        - asset: assets/fonts/RobotoMono-Regular.ttf
+        - asset: assets/fonts/RobotoMono-Bold.ttf
           weight: 700
     - family: Courier
       fonts:
-        - asset: fonts/CourierPrime-Regular.ttf
+        - asset: assets/fonts/CourierPrime-Regular.ttf
 
+  assets:
+    - assets/icons/
