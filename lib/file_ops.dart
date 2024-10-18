@@ -73,7 +73,17 @@ class FileInfo {
     return const JsonEncoder.withIndent('  ').convert(asInfoObject());
   }
 
+  // Needed here to reject a path that is actually a URI
+  static bool isUri(String text) {
+    return text.startsWith('http://') || text.startsWith('https://');
+  }
+
   static Future<FileInfo> fromPath(String filePath) async {
+    // Caller's responsibility
+    if (FileInfo.isUri(filePath)) {
+      throw Error();
+    }
+
     // Check cache first
     FileInfo? cachedInfo = await _getFileInfoFromCache(filePath);
     if (cachedInfo != null) {
@@ -110,12 +120,14 @@ class FileInfo {
   }
 
   static Future<FileInfo?> _getFileInfoFromCache(String filePath) async {
-    List<Map<String, dynamic>> results = await DatabaseHelper.instance.getFileItemsWithPath(filePath);
+    List<Map<String, dynamic>> results =
+        await DatabaseHelper.instance.getFileItemsWithPath(filePath);
 
     if (results.isNotEmpty) {
       Map<String, dynamic> cachedData = results.first;
       if (results.length > 1) {
-        throw StateError('${results.length} cache entries with primary key: $filePath');
+        throw StateError(
+            '${results.length} cache entries with primary key: $filePath');
       }
       return FileInfo(
         xFile: XFile(cachedData['filePath']),
@@ -140,7 +152,6 @@ class FileInfo {
   }
 
   static Future<void> _storeFileInfoInCache(FileInfo fileInfo) async {
-
     Database db = await DatabaseHelper.instance.database;
     await db.insert(
       'file_info',

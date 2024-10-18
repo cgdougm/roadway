@@ -102,34 +102,34 @@ class MarkdownEditorWidgetState extends State<MarkdownEditorWidget> {
     );
   }
 
-  void _handleMenuSelection(String value) {
-    switch (value) {
-      case 'bold':
-        _insertMarkdown('**', '**');
-        break;
-      case 'italic':
-        _insertMarkdown('*', '*');
-        break;
-      case 'link':
-        _insertMarkdown('[', '](url)');
-        break;
-      // Add more cases for additional markdown formatting options
-    }
-  }
+  // void _handleMenuSelection(String value) {
+  //   switch (value) {
+  //     case 'bold':
+  //       _insertMarkdown('**', '**');
+  //       break;
+  //     case 'italic':
+  //       _insertMarkdown('*', '*');
+  //       break;
+  //     case 'link':
+  //       _insertMarkdown('[', '](url)');
+  //       break;
+  //     // Add more cases for additional markdown formatting options
+  //   }
+  // }
 
-  void _insertMarkdown(String prefix, String suffix) {
-    final TextEditingValue value = widget.controller.value;
-    final int start = value.selection.start;
-    final int end = value.selection.end;
-    final String selectedText = value.text.substring(start, end);
-    final String newText =
-        '${value.text.substring(0, start)}$prefix$selectedText$suffix${value.text.substring(end)}';
-    widget.controller.value = TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(
-          offset: start + prefix.length + selectedText.length + suffix.length),
-    );
-  }
+  // void _insertMarkdown(String prefix, String suffix) {
+  //   final TextEditingValue value = widget.controller.value;
+  //   final int start = value.selection.start;
+  //   final int end = value.selection.end;
+  //   final String selectedText = value.text.substring(start, end);
+  //   final String newText =
+  //       '${value.text.substring(0, start)}$prefix$selectedText$suffix${value.text.substring(end)}';
+  //   widget.controller.value = TextEditingValue(
+  //     text: newText,
+  //     selection: TextSelection.collapsed(
+  //         offset: start + prefix.length + selectedText.length + suffix.length),
+  //   );
+  // }
 
   Widget _buildEditorContent() {
     switch (_viewMode) {

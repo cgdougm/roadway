@@ -14,7 +14,6 @@ import 'theme_colors.dart';
 import 'data_table_component.dart';
 import 'text_util.dart';
 import 'package:cross_file/cross_file.dart';
-import 'dart:convert'; // Add this import at the top of the file
 import 'file_ops.dart';
 import 'md_component.dart';
 
@@ -198,15 +197,19 @@ class _MyHomePageState extends State<MyHomePage>
     dumpLines.add('# Items');
     for (var item in items) {
       String filePath = item['value'] as String;
-      FileInfo fileInfo = await FileInfo.fromPath(filePath);
-      // Convert FileInfo to a Map and filter out null values
-      Map<String, dynamic> mappedFileInfo = fileInfo.toMap()
-        ..removeWhere((key, value) =>
-            value == null); // Not sure why this filder is needed
-      dumpLines.add('### ${mappedFileInfo["fileName"]}');
-      dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
-      dumpLines.add('* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
-      dumpLines.add('* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
+      if (FileInfo.isUri(filePath)) {
+        dumpLines.add('### $filePath');
+      } else {
+        FileInfo fileInfo = await FileInfo.fromPath(filePath);
+        // Convert FileInfo to a Map and filter out null values
+        Map<String, dynamic> mappedFileInfo = fileInfo.toMap()
+          ..removeWhere((key, value) =>
+              value == null); // Not sure why this filder is needed
+        dumpLines.add('### ${mappedFileInfo["fileName"]}');
+        dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
+        dumpLines.add('* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
+        dumpLines.add('* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
+      }
       dumpLines.add('\n'); // Separator between items
     }
     return dumpLines.join('\n');
