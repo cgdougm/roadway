@@ -16,6 +16,7 @@ import 'text_util.dart';
 import 'package:cross_file/cross_file.dart';
 import 'file_ops.dart';
 import 'md_component.dart';
+import 'filebrowser_component.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -207,8 +208,10 @@ class _MyHomePageState extends State<MyHomePage>
               value == null); // Not sure why this filder is needed
         dumpLines.add('### ${mappedFileInfo["fileName"]}');
         dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
-        dumpLines.add('* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
-        dumpLines.add('* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
+        dumpLines.add(
+            '* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
+        dumpLines.add(
+            '* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
       }
       dumpLines.add('\n'); // Separator between items
     }
@@ -367,6 +370,12 @@ class _MyHomePageState extends State<MyHomePage>
     showTextInSecondTab(content, filePath);
   }
 
+  void showFileBrowserInSecondTab() {
+    setState(() {
+      secondTabContent = const FileBrowser();
+    });
+  }
+
   void showTextInSecondTab(String content, [String title = 'untitled']) {
     _markdownController.text = content;
     setState(() {
@@ -471,12 +480,18 @@ class _MyHomePageState extends State<MyHomePage>
             onSelected: (String result) {
               if (result == 'dump') {
                 showFutureTextInSecondTab(dumpedDbItemsAsString(), 'DB Dump');
+              } else if (result == 'browser') {
+                showFileBrowserInSecondTab();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'dump',
                 child: Text('Dump to console'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'browser',
+                child: Text('File Browser'),
               ),
             ],
           ),
