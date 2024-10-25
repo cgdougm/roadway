@@ -1,4 +1,4 @@
-name: desktopdroptest
+name: roadway
 description: "Roadway: get to everywhere on your PC that matters"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.

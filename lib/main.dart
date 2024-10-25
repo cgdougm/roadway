@@ -1,4 +1,4 @@
-import 'package:desktopdroptest/file_component.dart';
+import 'file_component.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
@@ -17,6 +17,7 @@ import 'package:cross_file/cross_file.dart';
 import 'file_ops.dart';
 import 'md_component.dart';
 import 'filebrowser_component.dart';
+import 'rename_dialog.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -343,7 +344,8 @@ class _MyHomePageState extends State<MyHomePage>
       if (mimeType?.startsWith('image/') == true) {
         showImageInSecondTab(item['value']);
       } else if (mimeType?.startsWith('text/') == true) {
-        String content = await File(item['value']).readAsString();
+        String content = await File(item['value'])
+            .readAsString(); // FILLFAIL: file moved/renamed/deleted
         showTextInSecondTab(content, item['value']);
       }
     } else if (item['type'] == 'url') {
@@ -556,6 +558,12 @@ class _MyHomePageState extends State<MyHomePage>
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: (() =>
+            showRenameDialog(context, "C:\\Users\\micro\\Documents\\test.txt")),
+        tooltip: 'Rename files',
+        child: const Icon(Icons.add),
       ),
     );
   }

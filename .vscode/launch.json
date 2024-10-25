@@ -5,20 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "desktopdroptest",
+            "name": "roadway",
             "request": "launch",
             "type": "dart",
             "flutterMode": "debug",
             "args": ["-d", "windows"]
         },
         {
-            "name": "desktopdroptest (profile mode)",
+            "name": "roadway (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "desktopdroptest (release mode)",
+            "name": "roadway (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

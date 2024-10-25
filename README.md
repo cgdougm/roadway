@@ -1,3 +1,4 @@
-# desktopdroptest
+# Roadway
 
-Trying out the desktop_drop package
+Productivity desktop tool that manages projects without too many opinions
+

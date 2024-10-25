@@ -56,7 +56,7 @@ class FileBrowserState extends State<FileBrowser> {
             if (currentDirectory!.parent.path != currentDirectory!.path) {
               _navigateToDirectory(currentDirectory!.parent);
             } else {
-              print('TODO: Implement disk selection for Windows');
+              // TODO: Implement disk selection for Windows
             }
           },
         ),
@@ -75,11 +75,11 @@ class FileBrowserState extends State<FileBrowser> {
           child: ListTile(
             title: Text(dir.path.split('/').last),
             trailing: IconButton(
-              icon: Icon(Icons.arrow_forward),
+              icon: const Icon(Icons.arrow_forward),
               onPressed: () => _navigateToDirectory(dir),
             ),
             onTap: () {
-              print('TODO: Expand to show metadata');
+              // TODO: Expand to show metadata
             },
           ),
         );
@@ -98,7 +98,7 @@ class FileBrowserState extends State<FileBrowser> {
           child: ListTile(
             title: Text(file.path.split('/').last),
             trailing: IconButton(
-              icon: Icon(Icons.visibility),
+              icon: const Icon(Icons.visibility),
               onPressed: () {
                 if (widget.onFileView != null) {
                   widget.onFileView!(file);
@@ -106,7 +106,7 @@ class FileBrowserState extends State<FileBrowser> {
               },
             ),
             onTap: () {
-              print('TODO: Expand to show metadata');
+              // TODO: Expand to show metadata
             },
           ),
         );
