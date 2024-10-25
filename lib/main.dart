@@ -185,9 +185,8 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> ingestNewFiles(List<String> newFiles) async {
     AppState state = Provider.of<AppState>(context, listen: false);
-    for (String filePath in newFiles) {
-      state.addFile(XFile(filePath));
-    }
+    List<XFile> xFiles = newFiles.map((path) => XFile(path)).toList();
+    state.addFiles(xFiles);
     showSnackBar(
         '${newFiles.length} new file(s) added to database successfully.');
   }
