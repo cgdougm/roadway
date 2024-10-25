@@ -237,8 +237,11 @@ class _MyHomePageState extends State<MyHomePage>
                 .firstMatch(line);
         if (mdMatch != null) {
           urls.add(mdMatch.namedGroup('url')!);
-        } else if (await File(line.trim()).exists()) {
-          filePaths.add(removeEnclosingQuotes(line.trim()));
+        } else {
+          final trimmedLine = removeEnclosingQuotes(line.trim());
+          if (await File(trimmedLine).exists()) {
+            filePaths.add(trimmedLine);
+          }
         }
       }
     }
