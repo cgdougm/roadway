@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'db_helper.dart';
-import 'unique_id.dart';
+import 'core/db.dart';
+import 'core/unique_id.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:path/path.dart' as path;
-import 'text_util.dart';
+import 'core/text.dart';
 
 class AppState extends ChangeNotifier {
   final List<XFile> _files = [];

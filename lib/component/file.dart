@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'file_ops.dart';
+import '../core/file.dart';
 import 'package:provider/provider.dart';
-import 'app_state.dart';
+import '../app_state.dart';
 
 class FileCard extends StatelessWidget {
   final Map<String, dynamic> item;

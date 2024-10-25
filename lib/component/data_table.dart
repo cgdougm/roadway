@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:provider/provider.dart';
-import 'app_state.dart';
-import 'text_util.dart';
+import '../app_state.dart';
+import '../core/text.dart';
 
 class DataTableComponent extends StatelessWidget {
   final Function(Map<String, dynamic>) onDataCellTap;

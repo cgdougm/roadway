@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'text_util.dart';
+import '../core/text.dart';
 
 /// A widget that has a plain text field on the left, and a markdown widget on the right.
 /// There is a bar at the top that has on the right side three grouped buttons, for "text, both and rendered"

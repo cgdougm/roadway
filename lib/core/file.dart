@@ -4,9 +4,9 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 import 'package:cross_file/cross_file.dart';
 import 'package:sqflite/sqflite.dart';
-import 'db_helper.dart';
+import 'db.dart';
 import 'dart:convert';
-import 'text_util.dart';
+import 'text.dart';
 
 class FileInfo {
   final XFile xFile;

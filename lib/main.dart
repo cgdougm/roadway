@@ -1,23 +1,23 @@
-import 'file_component.dart';
+import 'component/file.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
 import 'app_state.dart';
-import 'db_helper.dart';
+import 'core/db.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
-import 'theme_provider.dart';
+import 'core/theme.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
-import 'theme_colors.dart';
-import 'data_table_component.dart';
-import 'text_util.dart';
+import 'component/palette.dart';
+import 'component/data_table.dart';
+import 'core/text.dart';
 import 'package:cross_file/cross_file.dart';
-import 'file_ops.dart';
-import 'md_component.dart';
-import 'filebrowser_component.dart';
-import 'rename_dialog.dart';
+import 'core/file.dart';
+import 'component/md.dart';
+import 'component/filebrowser.dart';
+import 'component/rename.dart';
 
 const bool isDev = false;
 // toggle diagnostic view
@@ -345,7 +345,7 @@ class _MyHomePageState extends State<MyHomePage>
         showImageInSecondTab(item['value']);
       } else if (mimeType?.startsWith('text/') == true) {
         String content = await File(item['value'])
-            .readAsString(); // FILLFAIL: file moved/renamed/deleted
+            .readAsString(); // WILLFAIL: file moved/renamed/deleted
         showTextInSecondTab(content, item['value']);
       }
     } else if (item['type'] == 'url') {
