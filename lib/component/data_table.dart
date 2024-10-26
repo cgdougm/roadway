@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
 import 'package:provider/provider.dart';
-import '../app_state.dart';
-import '../core/text.dart';
+import 'package:roadway/app_state.dart';
+import 'package:roadway/core/text.dart';
+import 'package:roadway/core/mime.dart';
+import 'package:mime/mime.dart';
 
 class DataTableComponent extends StatelessWidget {
   final Function(Map<String, dynamic>) onDataCellTap;
 
   const DataTableComponent({super.key, required this.onDataCellTap});
+
+  Icon _getItemIcon(Object item) {
+    if (item is Map<String, dynamic>) {
+      if (item['type'] == 'folder') {
+        return const Icon(Icons.folder);
+      } else if (item['type'] == 'file') {
+        return getIconForMimeType(
+            lookupMimeType(item['value']) ?? 'text/unknown');
+      } else {
+        return const Icon(Icons.link);
+      }
+    }
+    return const Icon(Icons.device_unknown);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +50,7 @@ class DataTableComponent extends StatelessWidget {
                       .map((item) => DataRow(cells: [
                             DataCell(
                               Row(children: [
-                                Icon(item['type'] == 'file'
-                                    ? Icons.insert_drive_file
-                                    : Icons.link),
+                                _getItemIcon(item),
                                 const SizedBox(width: 10),
                                 Text(item['value']),
                               ]),

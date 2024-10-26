@@ -1,25 +1,26 @@
-import 'component/file.dart';
+import 'package:roadway/component/file.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
-import 'app_state.dart';
-import 'core/db.dart';
+import 'package:roadway/app_state.dart';
+import 'package:roadway/core/db.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
-import 'core/theme.dart';
+import 'package:roadway/core/theme.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
-import 'component/palette.dart';
-import 'component/data_table.dart';
-import 'core/text.dart';
+import 'package:roadway/component/palette.dart';
+import 'package:roadway/component/data_table.dart';
+import 'package:roadway/core/text.dart';
 import 'package:cross_file/cross_file.dart';
-import 'core/file.dart';
-import 'component/md.dart';
-import 'component/filebrowser.dart';
-import 'component/rename.dart';
+import 'package:roadway/core/unique_id.dart';
+import 'package:roadway/core/file.dart';
+import 'package:roadway/component/md.dart';
+import 'package:roadway/component/filebrowser.dart';
+import 'package:roadway/component/rename.dart';
 
-const bool isDev = false;
+const bool isDev = true;
 // toggle diagnostic view
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -310,12 +311,13 @@ class _MyHomePageState extends State<MyHomePage>
     }
 
     for (String filePath in filePaths) {
+      XFile xFile = XFile(filePath);
       final id = generateId(filePath);
       final exists = await DatabaseHelper.instance.itemExists(id);
       if (!exists) {
         await DatabaseHelper.instance.insertItemIfNotExists(
           id,
-          'file',
+          xFile.isFolder() ? 'folder' : 'file',
           filePath,
           parent: path.dirname(filePath),
         );
@@ -352,6 +354,9 @@ class _MyHomePageState extends State<MyHomePage>
       }
     } else if (item['type'] == 'url') {
       _launchUrl(item['value']);
+    } else if (item['type'] == 'folder') {
+      // TODO: Implement folder view
+      showFileBrowserInSecondTab();
     }
     tabController.animateTo(1); // Switch to the second tab
   }

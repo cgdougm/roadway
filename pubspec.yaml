@@ -121,6 +121,7 @@ flutter:
     - family: Courier
       fonts:
         - asset: assets/fonts/CourierPrime-Regular.ttf
+        - asset: assets/fonts/MarkdownIcon.ttf
 
   assets:
     - assets/icons/

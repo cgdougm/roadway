@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../core/file.dart';
+import 'package:roadway/core/file.dart';
 import 'package:provider/provider.dart';
-import '../app_state.dart';
+import 'package:roadway/app_state.dart';
+import 'package:roadway/core/mime.dart';
 
 class FileCard extends StatelessWidget {
   final Map<String, dynamic> item;
@@ -27,7 +28,7 @@ class FileCard extends StatelessWidget {
           } else {
             final fileInfo = snapshot.data!;
             return ListTile(
-              leading: Icon(_getIconForFileType(fileInfo.mimeType)),
+              leading: getIconForMimeType(fileInfo.mimeType),
               title: Text(fileInfo.fileName),
               subtitle: Text('${fileInfo.fileLengthFormatted}  ${fileInfo.lastModified}'),
             );
@@ -37,16 +38,16 @@ class FileCard extends StatelessWidget {
     );
   }
 
-  IconData _getIconForFileType(String mimeType) {
-    // Implement logic to return appropriate icon based on mime type
-    if (mimeType.startsWith('image/')) {
-      return Icons.image;
-    } else if (mimeType.startsWith('text/')) {
-      return Icons.description;
-    } else {
-      return Icons.insert_drive_file;
-    }
-  }
+  // IconData _getIconForFileType(String mimeType) {
+  //   // Implement logic to return appropriate icon based on mime type
+  //   if (mimeType.startsWith('image/')) {
+  //     return Icons.image;
+  //   } else if (mimeType.startsWith('text/')) {
+  //     return Icons.description;
+  //   } else {
+  //     return Icons.insert_drive_file;
+  //   }
+  // }
 }
 
 class FileCardList extends StatelessWidget {

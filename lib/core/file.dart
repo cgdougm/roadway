@@ -3,10 +3,11 @@ import 'package:mime/mime.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 import 'package:cross_file/cross_file.dart';
+import 'package:roadway/core/unique_id.dart';
 import 'package:sqflite/sqflite.dart';
-import 'db.dart';
+import 'package:roadway/core/db.dart';
 import 'dart:convert';
-import 'text.dart';
+import 'package:roadway/core/text.dart';
 
 class FileInfo {
   final XFile xFile;
@@ -200,11 +201,11 @@ class FileInfo {
     final String? mimeType = lookupMimeType(file.path);
     result['mimetype'] = mimeType ?? 'Unknown';
 
-    final int fileLength = await fileToProcess.length();
+    final int fileLength = fileToProcess.isFolder() ? 0 : await fileToProcess.length();
     result['fileLength'] = fileLength;
-    result['fileLengthFormatted'] = formatFileSize(fileLength);
+    result['fileLengthFormatted'] = fileToProcess.isFolder() ? 'n/a' : formatFileSize(fileLength);
 
-    final DateTime lastModified = await file.lastModified();
+    final DateTime lastModified = fileToProcess.isFolder() ? DateTime.now() : await file.lastModified();
     result['lastModified'] = lastModified;
     final String formattedDate = formatDateTime(lastModified, withAgo: false);
     result['lastModifiedFormatted'] = formattedDate;
