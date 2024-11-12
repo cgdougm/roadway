@@ -15,6 +15,9 @@ extension UniqueXFile on XFile {
   bool isFolder() {
     return FileSystemEntity.typeSync(path) == FileSystemEntityType.directory;
   }
+  bool exists() {
+    return File(path).existsSync();
+  }
 }
 
 /// Unique identifier for a URI

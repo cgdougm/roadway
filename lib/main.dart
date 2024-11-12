@@ -228,18 +228,23 @@ class _MyHomePageState extends State<MyHomePage>
 
     final lines = clipboardContent.split('\n');
     for (final line in lines) {
+      // skip empty lines
       if (line.trim().isEmpty) continue;
-
-      if (line.startsWith('http://') || line.startsWith('https://')) {
-        urls.add(line.trim());
+      // remove leading/trailing quotes
+      final trimmedLine = removeEnclosingQuotes(line.trim());
+      // check for urls
+      if (trimmedLine.startsWith('http://') || trimmedLine.startsWith('https://')) {
+        // plain bare URL
+        urls.add(trimmedLine);
       } else {
+        // check for markdown-formatted urls, eg. [title](url)
         final mdMatch =
             RegExp(r'(?:[*-]\s)?\[(?<title>.*)\]\((?<url>https?:\/\/[^\s]+)\)')
-                .firstMatch(line);
+                .firstMatch(trimmedLine); // TODO: handle title
         if (mdMatch != null) {
           urls.add(mdMatch.namedGroup('url')!);
         } else {
-          final trimmedLine = removeEnclosingQuotes(line.trim());
+          // check for file paths
           if (await File(trimmedLine).exists()) {
             filePaths.add(trimmedLine);
           }
