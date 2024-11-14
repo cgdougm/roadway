@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:path/path.dart' as path;
 
 class FileBrowser extends StatefulWidget {
   final Function(File)? onFileView;
@@ -47,9 +48,21 @@ class FileBrowserState extends State<FileBrowser> {
   Widget _buildCurrentDirectoryCard() {
     return Card(
       child: ListTile(
-        title: Text(currentDirectory!.path),
-        subtitle: Text('${contents.whereType<File>().length} files, '
-            '${contents.whereType<Directory>().length} directories'),
+        title: Text(path.basename(currentDirectory!.path),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: RichText(
+          text: TextSpan(children: [
+            TextSpan(
+              text: '${path.dirname(currentDirectory!.path)}\n',
+              style: const TextStyle(fontSize: 10, fontFamily: 'Courier')),
+            TextSpan(
+              text: '(${contents.whereType<File>().length} files, ',
+              style: const TextStyle(fontSize: 10, fontFamily: 'Courier')),
+            TextSpan(
+              text: '${contents.whereType<Directory>().length} directories)',
+              style: const TextStyle(fontSize: 9, fontFamily: 'Courier')),
+          ]),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_upward),
           onPressed: () {
@@ -72,10 +85,12 @@ class FileBrowserState extends State<FileBrowser> {
       itemBuilder: (context, index) {
         final dir = subdirectories[index];
         return Card(
+          surfaceTintColor: Colors.green,
           child: ListTile(
-            title: Text(dir.path.split('/').last),
+            title: Text(path.basename(dir.path),
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
             trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward),
+              icon: const Icon(Icons.arrow_forward_ios, size: 16),
               onPressed: () => _navigateToDirectory(dir),
             ),
             onTap: () {
@@ -95,8 +110,9 @@ class FileBrowserState extends State<FileBrowser> {
       itemBuilder: (context, index) {
         final file = files[index];
         return Card(
+          surfaceTintColor: Colors.yellow,
           child: ListTile(
-            title: Text(file.path.split('/').last),
+            title: Text(path.basename(file.path)),
             trailing: IconButton(
               icon: const Icon(Icons.visibility),
               onPressed: () {

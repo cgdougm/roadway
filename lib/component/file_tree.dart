@@ -96,7 +96,7 @@ class FileTreeState extends State<FileTree> {
                 // Implement view logic
                 break;
               case 'Ingest':
-                Navigator.of(context).pop();
+                // Navigator.of(context).pop(); // THROWS ERROR and black screen
                 _showSnackBar(context, 'Ingesting: ${node.content}');
                 break;
               case 'Jump':

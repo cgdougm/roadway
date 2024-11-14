@@ -30,7 +30,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppState()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider(isDarkMode: true)),
       ],
       child: const MyApp(),
     ),
@@ -76,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage>
   void initState() {
     super.initState();
     _checkClipboard();
-    tabController = TabController(length: 3, vsync: this);
+    tabController = TabController(length: 4, vsync: this);
     _textEditingController = TextEditingController();
     _markdownController = TextEditingController();
   }
@@ -362,7 +362,7 @@ class _MyHomePageState extends State<MyHomePage>
       // TODO: Implement folder view
       showFileBrowserInSecondTab();
     }
-    tabController.animateTo(1); // Switch to the second tab
+    tabController.animateTo(2); // Switch to the second tab
   }
 
   void showImageInSecondTab(String imagePath) {
@@ -471,7 +471,7 @@ class _MyHomePageState extends State<MyHomePage>
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         title: Text(widget.title,
             style: const TextStyle(
                 fontFamily: 'HeptaSlab',
@@ -521,6 +521,9 @@ class _MyHomePageState extends State<MyHomePage>
           controller: tabController,
           tabs: const [
             Tooltip(
+              message: 'File tree',
+              child: Tab(icon: Icon(Icons.folder_open))),
+            Tooltip(
               message: 'Table of items',
               child: Tab(icon: Icon(Icons.table_chart))),
             Tooltip(message: 'Item editor', 
@@ -531,10 +534,10 @@ class _MyHomePageState extends State<MyHomePage>
         ),
       ),
       drawer: const Drawer(
-        width: 400,
+        width: 600,
         shadowColor: Colors.black,
         elevation: 10,
-        child: FileTree(),// FileCardList(),
+        child: FileBrowser(),
       ),
       body: DropTarget(
         onDragDone: (detail) {
@@ -558,6 +561,7 @@ class _MyHomePageState extends State<MyHomePage>
           child: TabBarView(
             controller: tabController,
             children: [
+              FileTree(),
               DataTableComponent(onDataCellTap: handleDataCellTap),
               secondTabContent ??
                   const Center(child: Text("Select an item to view")),
