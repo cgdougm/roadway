@@ -50,7 +50,8 @@ String formatFileSize(int fileLength) {
 // Will remove multiple pairs of the same quote, eg. ''my string''
 String removeEnclosingQuotes(String text) {
   String clean = text;
-  for (int i = 0; i < 3; i++) { // They might have used '''
+  for (int i = 0; i < 3; i++) {
+    // They might have used '''
     if (clean.length >= 2) {
       if ((clean.startsWith("'") && clean.endsWith("'")) ||
           (clean.startsWith('"') && clean.endsWith('"'))) {
@@ -59,4 +60,12 @@ String removeEnclosingQuotes(String text) {
     }
   }
   return text;
+}
+
+/// Return the given string. If it is longer than the maxChars,
+/// replace extraneous characters with '...'
+String leftElipses(String text, int maxChars) {
+  return text.length < (maxChars - 3)
+      ? text
+      : '...${text.substring(text.length - maxChars)}';
 }

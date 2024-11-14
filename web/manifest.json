@@ -1,6 +1,6 @@
 {
-    "name": "desktopdroptest",
-    "short_name": "desktopdroptest",
+    "name": "roadway",
+    "short_name": "roadway",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

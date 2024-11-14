@@ -25,6 +25,7 @@ class DatabaseHelper {
 
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
+    print('Database path: $path');
     return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 

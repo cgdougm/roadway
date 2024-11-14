@@ -1,22 +1,25 @@
-import 'package:desktopdroptest/file_component.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
-import 'app_state.dart';
-import 'db_helper.dart';
+import 'package:roadway/app_state.dart';
+import 'package:roadway/core/db.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 import 'package:pasteboard/pasteboard.dart';
-import 'theme_provider.dart';
+import 'package:roadway/core/theme.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
-import 'theme_colors.dart';
-import 'data_table_component.dart';
-import 'text_util.dart';
+import 'package:roadway/component/palette.dart';
+import 'package:roadway/component/data_table.dart';
+import 'package:roadway/core/text.dart';
 import 'package:cross_file/cross_file.dart';
-import 'dart:convert'; // Add this import at the top of the file
+import 'package:roadway/core/unique_id.dart';
+import 'package:roadway/core/file.dart';
+import 'package:roadway/component/md.dart';
+import 'package:roadway/component/filebrowser.dart';
+import 'package:roadway/component/rename.dart';
+import 'package:roadway/component/file_tree.dart';
 
-const bool isDev = false;
 // toggle diagnostic view
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +30,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppState()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider(isDarkMode: true)),
       ],
       child: const MyApp(),
     ),
@@ -67,17 +70,22 @@ class _MyHomePageState extends State<MyHomePage>
   bool _clipboardHasContent = false;
   late TabController tabController;
   late TextEditingController _textEditingController;
+  late TextEditingController _markdownController;
 
   @override
   void initState() {
     super.initState();
     _checkClipboard();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 4, vsync: this);
+    _textEditingController = TextEditingController();
+    _markdownController = TextEditingController();
   }
 
   @override
   void dispose() {
     tabController.dispose();
+    _textEditingController.dispose();
+    _markdownController.dispose();
     super.dispose();
   }
 
@@ -177,9 +185,8 @@ class _MyHomePageState extends State<MyHomePage>
 
   Future<void> ingestNewFiles(List<String> newFiles) async {
     AppState state = Provider.of<AppState>(context, listen: false);
-    for (String filePath in newFiles) {
-      state.addFile(XFile(filePath));
-    }
+    List<XFile> xFiles = newFiles.map((path) => XFile(path)).toList();
+    state.addFiles(xFiles);
     showSnackBar(
         '${newFiles.length} new file(s) added to database successfully.');
   }
@@ -188,11 +195,25 @@ class _MyHomePageState extends State<MyHomePage>
     final List<Map<String, Object?>> items =
         await context.read<AppState>().getAllItems();
     List<String> dumpLines = [];
-    dumpLines.add('All items in database:');
+    dumpLines.add('# Items');
     for (var item in items) {
-      final prettyJson = const JsonEncoder.withIndent('  ').convert(item);
-      dumpLines.add(prettyJson);
-      dumpLines.add('---'); // Separator between items
+      String filePath = item['value'] as String;
+      if (FileInfo.isUri(filePath)) {
+        dumpLines.add('### $filePath');
+      } else {
+        FileInfo fileInfo = await FileInfo.fromPath(filePath);
+        // Convert FileInfo to a Map and filter out null values
+        Map<String, dynamic> mappedFileInfo = fileInfo.toMap()
+          ..removeWhere((key, value) =>
+              value == null); // Not sure why this filder is needed
+        dumpLines.add('### ${mappedFileInfo["fileName"]}');
+        dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
+        dumpLines.add(
+            '* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
+        dumpLines.add(
+            '* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
+      }
+      dumpLines.add('\n'); // Separator between items
     }
     return dumpLines.join('\n');
   }
@@ -206,18 +227,26 @@ class _MyHomePageState extends State<MyHomePage>
 
     final lines = clipboardContent.split('\n');
     for (final line in lines) {
+      // skip empty lines
       if (line.trim().isEmpty) continue;
-
-      if (line.startsWith('http://') || line.startsWith('https://')) {
-        urls.add(line.trim());
+      // remove leading/trailing quotes
+      final trimmedLine = removeEnclosingQuotes(line.trim());
+      // check for urls
+      if (trimmedLine.startsWith('http://') || trimmedLine.startsWith('https://')) {
+        // plain bare URL
+        urls.add(trimmedLine);
       } else {
+        // check for markdown-formatted urls, eg. [title](url)
         final mdMatch =
             RegExp(r'(?:[*-]\s)?\[(?<title>.*)\]\((?<url>https?:\/\/[^\s]+)\)')
-                .firstMatch(line);
+                .firstMatch(trimmedLine); // TODO: handle title
         if (mdMatch != null) {
           urls.add(mdMatch.namedGroup('url')!);
-        } else if (await File(line.trim()).exists()) {
-          filePaths.add(removeEnclosingQuotes(line.trim()));
+        } else {
+          // check for file paths
+          if (await File(trimmedLine).exists()) {
+            filePaths.add(trimmedLine);
+          }
         }
       }
     }
@@ -286,12 +315,13 @@ class _MyHomePageState extends State<MyHomePage>
     }
 
     for (String filePath in filePaths) {
+      XFile xFile = XFile(filePath);
       final id = generateId(filePath);
       final exists = await DatabaseHelper.instance.itemExists(id);
       if (!exists) {
         await DatabaseHelper.instance.insertItemIfNotExists(
           id,
-          'file',
+          xFile.isFolder() ? 'folder' : 'file',
           filePath,
           parent: path.dirname(filePath),
         );
@@ -322,13 +352,17 @@ class _MyHomePageState extends State<MyHomePage>
       if (mimeType?.startsWith('image/') == true) {
         showImageInSecondTab(item['value']);
       } else if (mimeType?.startsWith('text/') == true) {
-        String content = await File(item['value']).readAsString();
+        String content = await File(item['value'])
+            .readAsString(); // WILLFAIL: file moved/renamed/deleted
         showTextInSecondTab(content, item['value']);
       }
     } else if (item['type'] == 'url') {
       _launchUrl(item['value']);
+    } else if (item['type'] == 'folder') {
+      // TODO: Implement folder view
+      showFileBrowserInSecondTab();
     }
-    tabController.animateTo(1); // Switch to the second tab
+    tabController.animateTo(2); // Switch to the second tab
   }
 
   void showImageInSecondTab(String imagePath) {
@@ -349,10 +383,19 @@ class _MyHomePageState extends State<MyHomePage>
     showTextInSecondTab(content, filePath);
   }
 
-  void showTextInSecondTab(String content, [String title = 'untitled']) async {
-    _textEditingController = TextEditingController(text: content);
+  void showFileBrowserInSecondTab() {
     setState(() {
-      secondTabContent = buildTextEditor(title);
+      secondTabContent = const FileBrowser();
+    });
+  }
+
+  void showTextInSecondTab(String content, [String title = 'untitled']) {
+    _markdownController.text = content;
+    setState(() {
+      secondTabContent = MarkdownEditorWidget(
+        title: title,
+        controller: _markdownController,
+      );
     });
   }
 
@@ -365,6 +408,13 @@ class _MyHomePageState extends State<MyHomePage>
     } catch (e) {
       showSnackBar('Error launching $url: $e');
     }
+  }
+
+  Widget buildMarkdownEditor(String title, String text) {
+    return Builder(builder: (BuildContext context) {
+      return MarkdownEditorWidget(
+          controller: _markdownController, title: title);
+    });
   }
 
   Widget buildTextEditor(String title) {
@@ -407,14 +457,6 @@ class _MyHomePageState extends State<MyHomePage>
                 ),
               ),
             ),
-            isDev
-                ? Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(30),
-                      child: const ThemeColorPalette(),
-                    ),
-                  )
-                : Container(),
           ],
         );
       },
@@ -429,8 +471,13 @@ class _MyHomePageState extends State<MyHomePage>
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        title: Text(widget.title,
+            style: const TextStyle(
+                fontFamily: 'HeptaSlab',
+                fontWeight: FontWeight.bold,
+                fontSize: 30,
+                letterSpacing: -2)),
         actions: [
           PopupMenuButton<String>(
             tooltip: 'Settings',
@@ -438,12 +485,18 @@ class _MyHomePageState extends State<MyHomePage>
             onSelected: (String result) {
               if (result == 'dump') {
                 showFutureTextInSecondTab(dumpedDbItemsAsString(), 'DB Dump');
+              } else if (result == 'browser') {
+                showFileBrowserInSecondTab();
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'dump',
                 child: Text('Dump to console'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'browser',
+                child: Text('File Browser'),
               ),
             ],
           ),
@@ -467,16 +520,24 @@ class _MyHomePageState extends State<MyHomePage>
         bottom: TabBar(
           controller: tabController,
           tabs: const [
-            Tab(icon: Icon(Icons.table_chart)),
-            Tab(icon: Icon(Icons.edit)),
+            Tooltip(
+              message: 'File tree',
+              child: Tab(icon: Icon(Icons.folder_open))),
+            Tooltip(
+              message: 'Table of items',
+              child: Tab(icon: Icon(Icons.table_chart))),
+            Tooltip(message: 'Item editor', 
+              child: Tab(icon: Icon(Icons.edit))),
+            Tooltip(message: 'Theme', 
+              child: Tab(icon: Icon(Icons.palette))),
           ],
         ),
       ),
       drawer: const Drawer(
-        width: 400,
+        width: 600,
         shadowColor: Colors.black,
         elevation: 10,
-        child: FileCardList(),
+        child: FileBrowser(),
       ),
       body: DropTarget(
         onDragDone: (detail) {
@@ -500,12 +561,20 @@ class _MyHomePageState extends State<MyHomePage>
           child: TabBarView(
             controller: tabController,
             children: [
+              FileTree(),
               DataTableComponent(onDataCellTap: handleDataCellTap),
               secondTabContent ??
                   const Center(child: Text("Select an item to view")),
+              ThemeColorPalette(),
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: (() =>
+            showRenameDialog(context, "C:\\Users\\micro\\Documents\\test.txt")),
+        tooltip: 'Rename files',
+        child: const Icon(Icons.add),
       ),
     );
   }

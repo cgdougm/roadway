@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'db_helper.dart';
-import 'unique_id.dart';
+import 'core/db.dart';
+import 'core/unique_id.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:path/path.dart' as path;
-import 'text_util.dart';
+import 'core/text.dart';
 
 class AppState extends ChangeNotifier {
   final List<XFile> _files = [];
@@ -22,20 +22,20 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void addURL(Uri url) {
-    if (!_urls.any((u) => u.uniqueId == url.uniqueId)) {
-      _urls.add(url);
-      DatabaseHelper.instance
-          .insertItem(url.uniqueId, 'url', url.toString(), parent: url.host);
+  void addFiles(List<XFile> xfiles) {
+    bool changed = false;
+    for (XFile file in xfiles) {
+      if (!_files.any((f) => f.uniqueId == file.uniqueId)) {
+        _files.add(file);
+        DatabaseHelper.instance.insertItemIfNotExists(
+            file.uniqueId, 'file', file.path,
+            parent: path.dirname(file.path));
+        changed = true;
+      }
+    }
+    if (changed) {
       notifyListeners();
     }
-  }
-
-  void addFiles(List<XFile> xfiles) {
-    for (XFile file in xfiles) {
-      addFile(file);
-    }
-    notifyListeners();
   }
 
   Future<void> deleteItem(String uniqueId) async {

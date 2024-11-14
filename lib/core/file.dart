@@ -3,10 +3,11 @@ import 'package:mime/mime.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 import 'package:cross_file/cross_file.dart';
+import 'package:roadway/core/unique_id.dart';
 import 'package:sqflite/sqflite.dart';
-import 'db_helper.dart';
+import 'package:roadway/core/db.dart';
 import 'dart:convert';
-import 'text_util.dart';
+import 'package:roadway/core/text.dart';
 
 class FileInfo {
   final XFile xFile;
@@ -73,7 +74,17 @@ class FileInfo {
     return const JsonEncoder.withIndent('  ').convert(asInfoObject());
   }
 
+  // Needed here to reject a path that is actually a URI
+  static bool isUri(String text) {
+    return text.startsWith('http://') || text.startsWith('https://');
+  }
+
   static Future<FileInfo> fromPath(String filePath) async {
+    // Caller's responsibility
+    if (FileInfo.isUri(filePath)) {
+      throw Error();
+    }
+
     // Check cache first
     FileInfo? cachedInfo = await _getFileInfoFromCache(filePath);
     if (cachedInfo != null) {
@@ -110,12 +121,14 @@ class FileInfo {
   }
 
   static Future<FileInfo?> _getFileInfoFromCache(String filePath) async {
-    List<Map<String, dynamic>> results = await DatabaseHelper.instance.getFileItemsWithPath(filePath);
+    List<Map<String, dynamic>> results =
+        await DatabaseHelper.instance.getFileItemsWithPath(filePath);
 
     if (results.isNotEmpty) {
       Map<String, dynamic> cachedData = results.first;
       if (results.length > 1) {
-        throw StateError('${results.length} cache entries with primary key: $filePath');
+        throw StateError(
+            '${results.length} cache entries with primary key: $filePath');
       }
       return FileInfo(
         xFile: XFile(cachedData['filePath']),
@@ -140,7 +153,6 @@ class FileInfo {
   }
 
   static Future<void> _storeFileInfoInCache(FileInfo fileInfo) async {
-
     Database db = await DatabaseHelper.instance.database;
     await db.insert(
       'file_info',
@@ -189,11 +201,11 @@ class FileInfo {
     final String? mimeType = lookupMimeType(file.path);
     result['mimetype'] = mimeType ?? 'Unknown';
 
-    final int fileLength = await fileToProcess.length();
+    final int fileLength = fileToProcess.isFolder() ? 0 : await fileToProcess.length();
     result['fileLength'] = fileLength;
-    result['fileLengthFormatted'] = formatFileSize(fileLength);
+    result['fileLengthFormatted'] = fileToProcess.isFolder() ? 'n/a' : formatFileSize(fileLength);
 
-    final DateTime lastModified = await file.lastModified();
+    final DateTime lastModified = fileToProcess.isFolder() ? DateTime.now() : await file.lastModified();
     result['lastModified'] = lastModified;
     final String formattedDate = formatDateTime(lastModified, withAgo: false);
     result['lastModifiedFormatted'] = formattedDate;
@@ -216,5 +228,17 @@ class FileInfo {
     }
 
     return result;
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'fileName': fileName,
+      'fileExt': fileExt,
+      'fileFolder': fileFolder,
+      'mimeType': mimeType,
+      'fileLengthFormatted': fileLengthFormatted,
+      'lastModifiedFormatted': lastModifiedFormatted,
+      'lastModifiedAgo': lastModifiedAgo,
+    };
   }
 }
