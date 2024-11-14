@@ -51,6 +51,7 @@ dependencies:
   flutter_svg: 2.0.10+1
   metadata_fetch: ^0.4.2
   path_provider: ^2.1.1
+  two_dimensional_scrollables: ^0.3.3
 
 dev_dependencies:
   flutter_test:

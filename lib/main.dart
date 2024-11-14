@@ -1,4 +1,3 @@
-import 'package:roadway/component/file.dart';
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
@@ -19,8 +18,8 @@ import 'package:roadway/core/file.dart';
 import 'package:roadway/component/md.dart';
 import 'package:roadway/component/filebrowser.dart';
 import 'package:roadway/component/rename.dart';
+import 'package:roadway/component/file_tree.dart';
 
-const bool isDev = true;
 // toggle diagnostic view
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,7 +76,7 @@ class _MyHomePageState extends State<MyHomePage>
   void initState() {
     super.initState();
     _checkClipboard();
-    tabController = TabController(length: 2, vsync: this);
+    tabController = TabController(length: 3, vsync: this);
     _textEditingController = TextEditingController();
     _markdownController = TextEditingController();
   }
@@ -458,14 +457,6 @@ class _MyHomePageState extends State<MyHomePage>
                 ),
               ),
             ),
-            isDev
-                ? Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(30),
-                      child: const ThemeColorPalette(),
-                    ),
-                  )
-                : Container(),
           ],
         );
       },
@@ -530,9 +521,12 @@ class _MyHomePageState extends State<MyHomePage>
           controller: tabController,
           tabs: const [
             Tooltip(
-                message: 'Table of items',
-                child: Tab(icon: Icon(Icons.table_chart))),
-            Tooltip(message: 'Item editor', child: Tab(icon: Icon(Icons.edit))),
+              message: 'Table of items',
+              child: Tab(icon: Icon(Icons.table_chart))),
+            Tooltip(message: 'Item editor', 
+              child: Tab(icon: Icon(Icons.edit))),
+            Tooltip(message: 'Theme', 
+              child: Tab(icon: Icon(Icons.palette))),
           ],
         ),
       ),
@@ -540,7 +534,7 @@ class _MyHomePageState extends State<MyHomePage>
         width: 400,
         shadowColor: Colors.black,
         elevation: 10,
-        child: FileCardList(),
+        child: FileTree(),// FileCardList(),
       ),
       body: DropTarget(
         onDragDone: (detail) {
@@ -567,6 +561,7 @@ class _MyHomePageState extends State<MyHomePage>
               DataTableComponent(onDataCellTap: handleDataCellTap),
               secondTabContent ??
                   const Center(child: Text("Select an item to view")),
+              ThemeColorPalette(),
             ],
           ),
         ),
