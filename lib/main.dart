@@ -9,16 +9,12 @@ import 'package:pasteboard/pasteboard.dart';
 import 'package:roadway/core/theme.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
-import 'package:roadway/component/palette.dart';
-import 'package:roadway/component/data_table.dart';
 import 'package:roadway/core/text.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:roadway/core/unique_id.dart';
 import 'package:roadway/core/file.dart';
 import 'package:roadway/component/md.dart';
 import 'package:roadway/component/filebrowser.dart';
-import 'package:roadway/component/rename.dart';
-import 'package:roadway/component/file_tree.dart';
 
 // toggle diagnostic view
 void main() async {
@@ -67,7 +63,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   bool isDragging = false;
-  bool _clipboardHasContent = false;
   late TabController tabController;
   late TextEditingController _textEditingController;
   late TextEditingController _markdownController;
@@ -75,7 +70,7 @@ class _MyHomePageState extends State<MyHomePage>
   @override
   void initState() {
     super.initState();
-    _checkClipboard();
+    // _checkClipboard();
     tabController = TabController(length: 4, vsync: this);
     _textEditingController = TextEditingController();
     _markdownController = TextEditingController();
@@ -89,13 +84,12 @@ class _MyHomePageState extends State<MyHomePage>
     super.dispose();
   }
 
-  Future<void> _checkClipboard() async {
-    final clipboardContent = await Pasteboard.text;
-    setState(() {
-      _clipboardHasContent =
-          clipboardContent != null && clipboardContent.isNotEmpty;
-    });
-  }
+  // Future<void> _checkClipboard() async {
+  //   final clipboardContent = await Pasteboard.text; // TODO: replace with super_clipboard
+  //   setState(() {
+  //     print('clipboardHasContent = ${clipboardContent != null && clipboardContent.isNotEmpty}');
+  //   });
+  // }
 
   void showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -333,7 +327,7 @@ class _MyHomePageState extends State<MyHomePage>
         ? '$addedCount new item(s) added to database successfully.'
         : 'URL(s) or file(s) already in DB, no new items added.';
     showSnackBar(snackMessage);
-    _checkClipboard();
+    // _checkClipboard();
   }
 
   void _showDraggingSnackBar() {
@@ -465,9 +459,31 @@ class _MyHomePageState extends State<MyHomePage>
 
   Widget? secondTabContent;
 
+  final List<Widget> appBarActions = [
+    PopupMenuButton<String>(
+      tooltip: 'Settings',
+      icon: const Icon(Icons.settings),
+      onSelected: (String result) {
+        if (result == 'dump') {
+        } else if (result == 'browser') {
+        }
+      },
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+        const PopupMenuItem<String>(
+          value: 'dump',
+          child: Text('Dump to console'),
+        ),
+        const PopupMenuItem<String>(
+          value: 'browser',
+          child: Text('File Browser'),
+        ),
+      ],
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+    // final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -478,60 +494,7 @@ class _MyHomePageState extends State<MyHomePage>
                 fontWeight: FontWeight.bold,
                 fontSize: 30,
                 letterSpacing: -2)),
-        actions: [
-          PopupMenuButton<String>(
-            tooltip: 'Settings',
-            icon: const Icon(Icons.settings),
-            onSelected: (String result) {
-              if (result == 'dump') {
-                showFutureTextInSecondTab(dumpedDbItemsAsString(), 'DB Dump');
-              } else if (result == 'browser') {
-                showFileBrowserInSecondTab();
-              }
-            },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'dump',
-                child: Text('Dump to console'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'browser',
-                child: Text('File Browser'),
-              ),
-            ],
-          ),
-          Tooltip(
-            message: 'Ingest from clipboard',
-            child: IconButton(
-              icon: const Icon(Icons.content_paste),
-              onPressed: _clipboardHasContent ? _handleClipboardContent : null,
-            ),
-          ),
-          Tooltip(
-            message: 'Toggle theme',
-            child: IconButton(
-              icon: Icon(themeProvider.isDarkMode
-                  ? Icons.wb_sunny
-                  : Icons.nightlight_round),
-              onPressed: () => themeProvider.toggleTheme(),
-            ),
-          ),
-        ],
-        bottom: TabBar(
-          controller: tabController,
-          tabs: const [
-            Tooltip(
-              message: 'File tree',
-              child: Tab(icon: Icon(Icons.folder_open))),
-            Tooltip(
-              message: 'Table of items',
-              child: Tab(icon: Icon(Icons.table_chart))),
-            Tooltip(message: 'Item editor', 
-              child: Tab(icon: Icon(Icons.edit))),
-            Tooltip(message: 'Theme', 
-              child: Tab(icon: Icon(Icons.palette))),
-          ],
-        ),
+        actions: appBarActions,
       ),
       drawer: const Drawer(
         width: 600,
@@ -558,23 +521,13 @@ class _MyHomePageState extends State<MyHomePage>
         },
         child: Container(
           color: isDragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-          child: TabBarView(
-            controller: tabController,
-            children: [
-              FileTree(),
-              DataTableComponent(onDataCellTap: handleDataCellTap),
-              secondTabContent ??
-                  const Center(child: Text("Select an item to view")),
-              ThemeColorPalette(),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: (() =>
-            showRenameDialog(context, "C:\\Users\\micro\\Documents\\test.txt")),
-        tooltip: 'Rename files',
-        child: const Icon(Icons.add),
+          child: const Center(
+            child: Text("Hello.",
+                style: TextStyle(
+                  fontFamily: 'HeptaSlab',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30,
+                  letterSpacing: -2)))),
       ),
     );
   }
