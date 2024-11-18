@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
 import 'package:roadway/app_state.dart';
 import 'package:roadway/core/db.dart';
-import 'package:path/path.dart' as path;
 import 'dart:io';
-import 'package:pasteboard/pasteboard.dart';
 import 'package:roadway/core/theme.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:mime/mime.dart';
-import 'package:roadway/core/text.dart';
-import 'package:cross_file/cross_file.dart';
-import 'package:roadway/core/unique_id.dart';
-import 'package:roadway/core/file.dart';
+import 'package:roadway/app_actions.dart';
 import 'package:roadway/component/md.dart';
 import 'package:roadway/component/filebrowser.dart';
+import 'package:roadway/component/snack.dart';
+import 'package:roadway/drop.dart';
 
 // toggle diagnostic view
 void main() async {
@@ -31,6 +29,15 @@ void main() async {
       child: const MyApp(),
     ),
   );
+
+  doWhenWindowReady(() {
+  // BitsDojo Window Settings
+    const initialSize = Size(1280, 720);
+    appWindow.minSize = initialSize;
+    appWindow.size = initialSize;
+    appWindow.alignment = Alignment.center;
+    appWindow.show();
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -84,261 +91,6 @@ class _MyHomePageState extends State<MyHomePage>
     super.dispose();
   }
 
-  // Future<void> _checkClipboard() async {
-  //   final clipboardContent = await Pasteboard.text; // TODO: replace with super_clipboard
-  //   setState(() {
-  //     print('clipboardHasContent = ${clipboardContent != null && clipboardContent.isNotEmpty}');
-  //   });
-  // }
-
-  void showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  Future<void> _handleFileDrop(List<String> filePaths) async {
-    List<String> newFiles = [];
-    List<String> existingFiles = [];
-
-    for (String filePath in filePaths) {
-      final id = generateId(filePath);
-      final exists = await DatabaseHelper.instance.itemExists(id);
-
-      if (exists) {
-        existingFiles.add(filePath);
-      } else {
-        newFiles.add(filePath);
-      }
-    }
-
-    if (newFiles.isNotEmpty || existingFiles.isNotEmpty) {
-      _showDroppedFilesDialog(newFiles, existingFiles);
-    }
-  }
-
-  void _showDroppedFilesDialog(
-      List<String> newFiles, List<String> existingFiles) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(newFiles.isEmpty
-              ? 'Files Already Exist'
-              : 'Confirm File Addition'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                if (newFiles.isNotEmpty) ...[
-                  const Text('New files to be added:'),
-                  ...newFiles.map((file) => Text('- ${path.basename(file)}')),
-                  const SizedBox(height: 10),
-                ],
-                if (existingFiles.isNotEmpty) ...[
-                  Text(
-                      'Files already in database ${newFiles.isEmpty ? '(no action needed)' : '(will be skipped)'}:'),
-                  ...existingFiles
-                      .map((file) => Text('- ${path.basename(file)}')),
-                ],
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            if (newFiles.isNotEmpty) ...[
-              TextButton(
-                child: const Text('Cancel'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  showSnackBar('Operation cancelled. No files were added.');
-                },
-              ),
-              TextButton(
-                child: const Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ingestNewFiles(newFiles);
-                },
-              ),
-            ] else
-              TextButton(
-                child: const Text('Close'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  showSnackBar(
-                      'All files already exist in the database. No changes made.');
-                },
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> ingestNewFiles(List<String> newFiles) async {
-    AppState state = Provider.of<AppState>(context, listen: false);
-    List<XFile> xFiles = newFiles.map((path) => XFile(path)).toList();
-    state.addFiles(xFiles);
-    showSnackBar(
-        '${newFiles.length} new file(s) added to database successfully.');
-  }
-
-  Future<String> dumpedDbItemsAsString() async {
-    final List<Map<String, Object?>> items =
-        await context.read<AppState>().getAllItems();
-    List<String> dumpLines = [];
-    dumpLines.add('# Items');
-    for (var item in items) {
-      String filePath = item['value'] as String;
-      if (FileInfo.isUri(filePath)) {
-        dumpLines.add('### $filePath');
-      } else {
-        FileInfo fileInfo = await FileInfo.fromPath(filePath);
-        // Convert FileInfo to a Map and filter out null values
-        Map<String, dynamic> mappedFileInfo = fileInfo.toMap()
-          ..removeWhere((key, value) =>
-              value == null); // Not sure why this filder is needed
-        dumpLines.add('### ${mappedFileInfo["fileName"]}');
-        dumpLines.add('* ${mappedFileInfo["fileFolder"]}');
-        dumpLines.add(
-            '* ${mappedFileInfo["mimeType"]} / ${mappedFileInfo["fileLengthFormatted"]}');
-        dumpLines.add(
-            '* ${mappedFileInfo["lastModifiedFormatted"]} (${mappedFileInfo["lastModifiedAgo"]})');
-      }
-      dumpLines.add('\n'); // Separator between items
-    }
-    return dumpLines.join('\n');
-  }
-
-  Future<void> _handleClipboardContent() async {
-    final clipboardContent = await Pasteboard.text;
-    if (clipboardContent == null || clipboardContent.isEmpty) return;
-
-    final List<String> urls = [];
-    final List<String> filePaths = [];
-
-    final lines = clipboardContent.split('\n');
-    for (final line in lines) {
-      // skip empty lines
-      if (line.trim().isEmpty) continue;
-      // remove leading/trailing quotes
-      final trimmedLine = removeEnclosingQuotes(line.trim());
-      // check for urls
-      if (trimmedLine.startsWith('http://') || trimmedLine.startsWith('https://')) {
-        // plain bare URL
-        urls.add(trimmedLine);
-      } else {
-        // check for markdown-formatted urls, eg. [title](url)
-        final mdMatch =
-            RegExp(r'(?:[*-]\s)?\[(?<title>.*)\]\((?<url>https?:\/\/[^\s]+)\)')
-                .firstMatch(trimmedLine); // TODO: handle title
-        if (mdMatch != null) {
-          urls.add(mdMatch.namedGroup('url')!);
-        } else {
-          // check for file paths
-          if (await File(trimmedLine).exists()) {
-            filePaths.add(trimmedLine);
-          }
-        }
-      }
-    }
-
-    if (urls.isEmpty && filePaths.isEmpty) {
-      showSnackBar('No valid URLs or file paths found in clipboard.');
-      return;
-    }
-
-    _showClipboardContentDialog(urls, filePaths);
-  }
-
-  void _showClipboardContentDialog(List<String> urls, List<String> filePaths) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Content Addition'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                if (urls.isNotEmpty) ...[
-                  const Text('URLs to be added:'),
-                  ...urls.map((url) => Text('- $url')),
-                  const SizedBox(height: 10),
-                ],
-                if (filePaths.isNotEmpty) ...[
-                  const Text('File paths to be added:'),
-                  ...filePaths.map((file) => Text('- ${path.basename(file)}')),
-                ],
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                showSnackBar('Operation cancelled. No content was added.');
-              },
-            ),
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _commitClipboardContent(urls, filePaths);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _commitClipboardContent(
-      List<String> urls, List<String> filePaths) async {
-    int addedCount = 0;
-
-    for (String url in urls) {
-      final id = generateId(url);
-      final exists = await DatabaseHelper.instance.itemExists(id);
-      if (!exists) {
-        await DatabaseHelper.instance.insertItemIfNotExists(id, 'url', url);
-        addedCount++;
-      }
-    }
-
-    for (String filePath in filePaths) {
-      XFile xFile = XFile(filePath);
-      final id = generateId(filePath);
-      final exists = await DatabaseHelper.instance.itemExists(id);
-      if (!exists) {
-        await DatabaseHelper.instance.insertItemIfNotExists(
-          id,
-          xFile.isFolder() ? 'folder' : 'file',
-          filePath,
-          parent: path.dirname(filePath),
-        );
-        addedCount++;
-      }
-    }
-
-    String snackMessage = addedCount > 0
-        ? '$addedCount new item(s) added to database successfully.'
-        : 'URL(s) or file(s) already in DB, no new items added.';
-    showSnackBar(snackMessage);
-    // _checkClipboard();
-  }
-
-  void _showDraggingSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Drop file(s) to ingest'),
-        duration: Duration(days: 1), // Long duration, we'll dismiss it manually
-        backgroundColor: Colors.blue,
-      ),
-    );
-  }
 
   Future<void> handleDataCellTap(Map<String, dynamic> item) async {
     if (item['type'] == 'file') {
@@ -400,7 +152,7 @@ class _MyHomePageState extends State<MyHomePage>
         throw 'Could not launch $url';
       }
     } catch (e) {
-      showSnackBar('Error launching $url: $e');
+      showSnackBar('Error launching $url: $e', context);
     }
   }
 
@@ -411,75 +163,9 @@ class _MyHomePageState extends State<MyHomePage>
     });
   }
 
-  Widget buildTextEditor(String title) {
-    return Builder(
-      builder: (BuildContext context) {
-        final colorScheme = Theme.of(context).colorScheme;
-
-        return Column(
-          children: [
-            Container(
-              color: colorScheme.tertiary,
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-              child: Text(
-                title,
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  fontFamily: 'Courier',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: colorScheme.onTertiary,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                child: TextField(
-                  controller: _textEditingController,
-                  expands: true,
-                  minLines: null,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
-                  decoration: InputDecoration(
-                    hintText: 'Text content',
-                    fillColor: colorScheme.surface,
-                    filled: true,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   Widget? secondTabContent;
 
-  final List<Widget> appBarActions = [
-    PopupMenuButton<String>(
-      tooltip: 'Settings',
-      icon: const Icon(Icons.settings),
-      onSelected: (String result) {
-        if (result == 'dump') {
-        } else if (result == 'browser') {
-        }
-      },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(
-          value: 'dump',
-          child: Text('Dump to console'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'browser',
-          child: Text('File Browser'),
-        ),
-      ],
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -505,13 +191,13 @@ class _MyHomePageState extends State<MyHomePage>
       body: DropTarget(
         onDragDone: (detail) {
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          _handleFileDrop(detail.files.map((xFile) => xFile.path).toList());
+          handleFileDrop(detail.files.map((xFile) => xFile.path).toList(), context);
         },
         onDragEntered: (detail) {
           setState(() {
             isDragging = true;
           });
-          _showDraggingSnackBar();
+          showDraggingSnackBar(context);
         },
         onDragExited: (detail) {
           setState(() {
