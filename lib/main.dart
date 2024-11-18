@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:bitsdojo_window/bitsdojo_window.dart';
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:provider/provider.dart';
 import 'package:roadway/app_state.dart';
 import 'package:roadway/core/db.dart';
-import 'dart:io';
 import 'package:roadway/core/theme.dart';
-import 'package:url_launcher/url_launcher.dart' as url_launcher;
-import 'package:mime/mime.dart';
 import 'package:roadway/app_actions.dart';
-import 'package:roadway/component/md.dart';
 import 'package:roadway/component/filebrowser.dart';
-import 'package:roadway/component/snack.dart';
-import 'package:roadway/drop.dart';
 
 // toggle diagnostic view
 void main() async {
@@ -24,14 +17,15 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AppState()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider(isDarkMode: true)),
+        ChangeNotifierProvider(
+            create: (context) => ThemeProvider(isDarkMode: true)),
       ],
       child: const MyApp(),
     ),
   );
 
   doWhenWindowReady(() {
-  // BitsDojo Window Settings
+    // BitsDojo Window Settings
     const initialSize = Size(1280, 720);
     appWindow.minSize = initialSize;
     appWindow.size = initialSize;
@@ -50,7 +44,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'Roadway',
           theme: themeProvider.themeData,
-          home: const MyHomePage(title: 'roadway'),
+          home: const AppPage(title: 'roadway'),
           debugShowCheckedModeBanner: false,
         );
       },
@@ -58,163 +52,136 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class AppPage extends StatefulWidget {
+  const AppPage({super.key, required this.title});
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<AppPage> createState() => _AppPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage>
-    with SingleTickerProviderStateMixin {
-  bool isDragging = false;
-  late TabController tabController;
-  late TextEditingController _textEditingController;
-  late TextEditingController _markdownController;
-
+class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    // _checkClipboard();
-    tabController = TabController(length: 4, vsync: this);
-    _textEditingController = TextEditingController();
-    _markdownController = TextEditingController();
   }
-
-  @override
-  void dispose() {
-    tabController.dispose();
-    _textEditingController.dispose();
-    _markdownController.dispose();
-    super.dispose();
-  }
-
-
-  Future<void> handleDataCellTap(Map<String, dynamic> item) async {
-    if (item['type'] == 'file') {
-      final mimeType = lookupMimeType(item['value']);
-      if (mimeType?.startsWith('image/') == true) {
-        showImageInSecondTab(item['value']);
-      } else if (mimeType?.startsWith('text/') == true) {
-        String content = await File(item['value'])
-            .readAsString(); // WILLFAIL: file moved/renamed/deleted
-        showTextInSecondTab(content, item['value']);
-      }
-    } else if (item['type'] == 'url') {
-      _launchUrl(item['value']);
-    } else if (item['type'] == 'folder') {
-      // TODO: Implement folder view
-      showFileBrowserInSecondTab();
-    }
-    tabController.animateTo(2); // Switch to the second tab
-  }
-
-  void showImageInSecondTab(String imagePath) {
-    setState(() {
-      secondTabContent = Image.file(File(imagePath));
-    });
-  }
-
-  Future<void> showFutureTextInSecondTab(
-      Future<String> futureText, String title) async {
-    String content = await futureText;
-    showTextInSecondTab(content, title);
-  }
-
-  void showFileContentsInSecondTab(String filePath) async {
-    final file = File(filePath);
-    final content = await file.readAsString();
-    showTextInSecondTab(content, filePath);
-  }
-
-  void showFileBrowserInSecondTab() {
-    setState(() {
-      secondTabContent = const FileBrowser();
-    });
-  }
-
-  void showTextInSecondTab(String content, [String title = 'untitled']) {
-    _markdownController.text = content;
-    setState(() {
-      secondTabContent = MarkdownEditorWidget(
-        title: title,
-        controller: _markdownController,
-      );
-    });
-  }
-
-  Future<void> _launchUrl(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-    try {
-      if (!await url_launcher.launchUrl(url)) {
-        throw 'Could not launch $url';
-      }
-    } catch (e) {
-      showSnackBar('Error launching $url: $e', context);
-    }
-  }
-
-  Widget buildMarkdownEditor(String title, String text) {
-    return Builder(builder: (BuildContext context) {
-      return MarkdownEditorWidget(
-          controller: _markdownController, title: title);
-    });
-  }
-
-
-  Widget? secondTabContent;
-
 
   @override
   Widget build(BuildContext context) {
-    // final themeProvider = Provider.of<ThemeProvider>(context);
-
+    String windowTitle = widget.title;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        title: Text(widget.title,
-            style: const TextStyle(
-                fontFamily: 'HeptaSlab',
-                fontWeight: FontWeight.bold,
-                fontSize: 30,
-                letterSpacing: -2)),
-        actions: appBarActions,
-      ),
+      // appBar: AppBar(
+      //   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      //   title: Text(widget.title,
+      //       style: const TextStyle(
+      //           fontFamily: 'HeptaSlab',
+      //           fontWeight: FontWeight.bold,
+      //           fontSize: 30,
+      //           letterSpacing: -2)),
+      //   actions: appBarActions,
+      // ),
       drawer: const Drawer(
-        width: 600,
+        width: 400,
         shadowColor: Colors.black,
         elevation: 10,
         child: FileBrowser(),
       ),
-      body: DropTarget(
-        onDragDone: (detail) {
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          handleFileDrop(detail.files.map((xFile) => xFile.path).toList(), context);
-        },
-        onDragEntered: (detail) {
-          setState(() {
-            isDragging = true;
-          });
-          showDraggingSnackBar(context);
-        },
-        onDragExited: (detail) {
-          setState(() {
-            isDragging = false;
-          });
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        },
-        child: Container(
-          color: isDragging ? Colors.blue.withOpacity(0.1) : Colors.transparent,
-          child: const Center(
-            child: Text("Hello.",
-                style: TextStyle(
-                  fontFamily: 'HeptaSlab',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 30,
-                  letterSpacing: -2)))),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color.fromARGB(255, 42, 36, 48),
+                Color.fromARGB(255, 87, 115, 121)
+              ],
+              stops: [
+                0.1,
+                1.0
+              ]),
+        ),
+        child: Column(children: [
+          WindowTitleBarBox(
+            child: Container(
+              color: const Color.fromARGB(30, 0, 0, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: MoveWindow(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(3, 0, 3, 2),
+                        child: Row(children: [
+                          const IconButton(
+                            icon: Icon(
+                              Icons.menu_rounded,
+                              color: Color.fromARGB(180, 157, 140, 217),
+                              size: 18,
+                            ),
+                            onPressed: null,
+                          ),
+                          Baseline(
+                            baseline: 22,
+                            baselineType: TextBaseline.alphabetic,
+                            child: Text(windowTitle,
+                                style: const TextStyle(
+                                    fontFamily: 'HeptaSlab',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: Color.fromARGB(180, 157, 140, 217),
+                                    letterSpacing: -1)),
+                          ),
+                          const Spacer(),
+                          const IconButton(
+                            icon: Icon(
+                              Icons.sunny,
+                              color: Color.fromARGB(255, 88, 44, 209),
+                              size: 15,
+                            ),
+                            onPressed: null,
+                          ),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  const WindowButtons(),
+                ],
+              ),
+            ),
+          )
+        ]),
+
+        // Center(
+        //     child: Text("Hello.",
+        //         style: TextStyle(
+        //           fontFamily: 'HeptaSlab',
+        //           fontWeight: FontWeight.bold,
+        //           fontSize: 30,
+        //         letterSpacing: -2,
+        //         ),
+        //       ),
+        //     ),
       ),
+    );
+  }
+}
+
+final buttonColors = WindowButtonColors(
+    mouseOver: const Color.fromARGB(255, 117, 13, 245),
+    mouseDown: const Color.fromARGB(255, 157, 140, 217),
+    iconNormal: const Color.fromARGB(255, 88, 44, 209),
+    iconMouseOver: Colors.white);
+
+class WindowButtons extends StatelessWidget {
+  const WindowButtons({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        MinimizeWindowButton(colors: buttonColors),
+        MaximizeWindowButton(colors: buttonColors),
+        CloseWindowButton(colors: buttonColors),
+      ],
     );
   }
 }
