@@ -3,10 +3,17 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 
+void createNewFileBrowser(BuildContext context) {
+  Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => const FileBrowser(showCloseButton: true)));
+}
+
 class FileBrowser extends StatefulWidget {
   final Function(File)? onFileView;
+  final bool showCloseButton;
 
-  const FileBrowser({super.key, this.onFileView});
+  const FileBrowser(
+      {super.key, this.onFileView, this.showCloseButton = true});
 
   @override
   FileBrowserState createState() => FileBrowserState();
@@ -53,14 +60,14 @@ class FileBrowserState extends State<FileBrowser> {
         subtitle: RichText(
           text: TextSpan(children: [
             TextSpan(
-              text: '${path.dirname(currentDirectory!.path)}\n',
+                text: '${path.dirname(currentDirectory!.path)}\n',
               style: const TextStyle(fontSize: 10, fontFamily: 'Courier')),
             TextSpan(
-              text: '(${contents.whereType<File>().length} files, ',
-              style: const TextStyle(fontSize: 10, fontFamily: 'Courier')),
+                text: '(${contents.whereType<File>().length} files, ',
+                style: const TextStyle(fontSize: 10, fontFamily: 'Courier')),
             TextSpan(
-              text: '${contents.whereType<Directory>().length} directories)',
-              style: const TextStyle(fontSize: 9, fontFamily: 'Courier')),
+                text: '${contents.whereType<Directory>().length} directories)',
+                style: const TextStyle(fontSize: 9, fontFamily: 'Courier')),
           ]),
         ),
         leading: IconButton(
@@ -85,17 +92,17 @@ class FileBrowserState extends State<FileBrowser> {
       itemBuilder: (context, index) {
         final dir = subdirectories[index];
         return Card(
-          surfaceTintColor: Colors.green,
-          child: ListTile(
-            title: Text(path.basename(dir.path),
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-            trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward_ios, size: 16),
-              onPressed: () => _navigateToDirectory(dir),
-            ),
-            onTap: () {
-              // TODO: Expand to show metadata
-            },
+            surfaceTintColor: Colors.green,
+            child: ListTile(
+              title: Text(path.basename(dir.path),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              trailing: IconButton(
+                icon: const Icon(Icons.arrow_forward_ios, size: 16),
+                onPressed: () => _navigateToDirectory(dir),
+              ),
+              onTap: () {
+                // TODO: Expand to show metadata
+              },
           ),
         );
       },
@@ -110,20 +117,20 @@ class FileBrowserState extends State<FileBrowser> {
       itemBuilder: (context, index) {
         final file = files[index];
         return Card(
-          surfaceTintColor: Colors.yellow,
-          child: ListTile(
-            title: Text(path.basename(file.path)),
-            trailing: IconButton(
-              icon: const Icon(Icons.visibility),
-              onPressed: () {
-                if (widget.onFileView != null) {
-                  widget.onFileView!(file);
-                }
+            surfaceTintColor: Colors.yellow,
+            child: ListTile(
+              title: Text(path.basename(file.path)),
+              trailing: IconButton(
+                icon: const Icon(Icons.visibility),
+                onPressed: () {
+                  if (widget.onFileView != null) {
+                    widget.onFileView!(file);
+                  }
+                },
+              ),
+              onTap: () {
+                // TODO: Expand to show metadata
               },
-            ),
-            onTap: () {
-              // TODO: Expand to show metadata
-            },
           ),
         );
       },
@@ -136,20 +143,39 @@ class FileBrowserState extends State<FileBrowser> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
-      children: [
-        _buildCurrentDirectoryCard(),
-        Expanded(
-          child: SingleChildScrollView(
+    double windowWidth = MediaQuery.of(context).size.width;
+    double previewWidth = windowWidth / 2;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(8.0, 8.0, previewWidth, 0),
+      child: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(40, 0, 0, 0),
             child: Column(
               children: [
-                _buildSubdirectoryList(),
-                _buildFileList(),
+                _buildCurrentDirectoryCard(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        _buildSubdirectoryList(),
+                        _buildFileList(),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ],
+          widget.showCloseButton
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                )
+              : const SizedBox.shrink(),
+        ],
+      ),
     );
   }
 }

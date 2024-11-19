@@ -71,16 +71,6 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     String windowTitle = widget.title;
     return Scaffold(
-      // appBar: AppBar(
-      //   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      //   title: Text(widget.title,
-      //       style: const TextStyle(
-      //           fontFamily: 'HeptaSlab',
-      //           fontWeight: FontWeight.bold,
-      //           fontSize: 30,
-      //           letterSpacing: -2)),
-      //   actions: appBarActions,
-      // ),
       drawer: const Drawer(
         width: 400,
         shadowColor: Colors.black,
@@ -112,13 +102,31 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(3, 0, 3, 2),
                         child: Row(children: [
-                          const IconButton(
-                            icon: Icon(
-                              Icons.menu_rounded,
-                              color: Color.fromARGB(180, 157, 140, 217),
-                              size: 18,
-                            ),
-                            onPressed: null,
+                          MenuAnchor(
+                            builder: (context, controller, child) {
+                              return IconButton(
+                                icon: const Icon(
+                                  Icons.menu_rounded,
+                                  color: Color.fromARGB(180, 157, 140, 217),
+                                  size: 18,
+                                ),
+                                onPressed: () {
+                                  if (controller.isOpen) {
+                                    controller.close();
+                                  } else {
+                                    controller.open();
+                                  }
+                                },
+                              );
+                            },
+                            menuChildren: [
+                              MenuItemButton(
+                                child: const Text('New file browser...'),
+                                onPressed: () {
+                                  createNewFileBrowser(context);
+                                },
+                              ),
+                            ],
                           ),
                           Baseline(
                             baseline: 22,
@@ -150,17 +158,6 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
             ),
           )
         ]),
-
-        // Center(
-        //     child: Text("Hello.",
-        //         style: TextStyle(
-        //           fontFamily: 'HeptaSlab',
-        //           fontWeight: FontWeight.bold,
-        //           fontSize: 30,
-        //         letterSpacing: -2,
-        //         ),
-        //       ),
-        //     ),
       ),
     );
   }
