@@ -4,9 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:roadway/app_state.dart';
 import 'package:roadway/core/db.dart';
 import 'package:roadway/core/theme.dart';
-import 'package:roadway/app_actions.dart';
 import 'package:roadway/component/filebrowser.dart';
-
+import 'package:roadway/app_content.dart';
 // toggle diagnostic view
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +25,8 @@ void main() async {
 
   doWhenWindowReady(() {
     // BitsDojo Window Settings
-    const initialSize = Size(1280, 720);
-    appWindow.minSize = initialSize;
-    appWindow.size = initialSize;
+    appWindow.minSize = const Size(360, 360);
+    appWindow.size = const Size(1280, 720);
     appWindow.alignment = Alignment.center;
     appWindow.show();
   });
@@ -92,6 +90,7 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
               ]),
         ),
         child: Column(children: [
+          // Window Title Bar with close, etc buttons
           WindowTitleBarBox(
             child: Container(
               color: const Color.fromARGB(30, 0, 0, 0),
@@ -102,32 +101,7 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(3, 0, 3, 2),
                         child: Row(children: [
-                          MenuAnchor(
-                            builder: (context, controller, child) {
-                              return IconButton(
-                                icon: const Icon(
-                                  Icons.menu_rounded,
-                                  color: Color.fromARGB(180, 157, 140, 217),
-                                  size: 18,
-                                ),
-                                onPressed: () {
-                                  if (controller.isOpen) {
-                                    controller.close();
-                                  } else {
-                                    controller.open();
-                                  }
-                                },
-                              );
-                            },
-                            menuChildren: [
-                              MenuItemButton(
-                                child: const Text('New file browser...'),
-                                onPressed: () {
-                                  createNewFileBrowser(context);
-                                },
-                              ),
-                            ],
-                          ),
+                          const SizedBox(width: 10),
                           Baseline(
                             baseline: 22,
                             baselineType: TextBaseline.alphabetic,
@@ -140,14 +114,6 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
                                     letterSpacing: -1)),
                           ),
                           const Spacer(),
-                          const IconButton(
-                            icon: Icon(
-                              Icons.sunny,
-                              color: Color.fromARGB(255, 88, 44, 209),
-                              size: 15,
-                            ),
-                            onPressed: null,
-                          ),
                         ]),
                       ),
                     ),
@@ -156,7 +122,11 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
                 ],
               ),
             ),
-          )
+          ),
+          // Main content
+          Expanded(
+            child: AppContent(),
+          ),
         ]),
       ),
     );
