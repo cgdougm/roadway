@@ -151,7 +151,7 @@ class FileBrowserState extends State<FileBrowser> {
       child: Stack(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(40, 0, 0, 0),
+            padding: EdgeInsets.fromLTRB(widget.showCloseButton ? 40 : 0, 0, 0, 0),
             child: Column(
               children: [
                 _buildCurrentDirectoryCard(),
