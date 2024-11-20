@@ -1,47 +1,47 @@
 import 'package:flutter/material.dart';
 
-  Widget buildTextEditor(String title, TextEditingController textEditingController) {
-    return Builder(
-      builder: (BuildContext context) {
-        final colorScheme = Theme.of(context).colorScheme;
+Widget buildTextEditor(
+    String title, TextEditingController textEditingController) {
+  return Builder(
+    builder: (BuildContext context) {
+      final colorScheme = Theme.of(context).colorScheme;
 
-        return Column(
-          children: [
-            Container(
-              color: colorScheme.tertiary,
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+      return Column(
+        children: [
+          SizedBox(
+            height: 20,
+            child: Container(
+              color: Colors.blue, // colorScheme.tertiary,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
               child: Text(
                 title,
                 textAlign: TextAlign.left,
                 style: TextStyle(
                   fontFamily: 'Courier',
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: colorScheme.onTertiary,
+                  fontSize: 12,
+                  color: Colors.yellow// colorScheme.onTertiary,
                 ),
               ),
             ),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(30),
-                child: TextField(
-                  controller: textEditingController,
-                  expands: true,
-                  minLines: null,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
-                  decoration: InputDecoration(
-                    hintText: 'Text content',
-                    fillColor: colorScheme.surface,
-                    filled: true,
-                  ),
+          ),
+            Container(
+              padding: const EdgeInsets.all(30),
+              child: TextField(
+                controller: textEditingController,
+                minLines: null,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
+                decoration: InputDecoration(
+                  hintText: 'Text content',
+                  fillColor: colorScheme.surface,
+                  filled: true,
                 ),
               ),
             ),
-          ],
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+}
