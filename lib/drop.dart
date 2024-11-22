@@ -93,11 +93,11 @@ Future<void> ingestNewFiles(List<String> newFiles, BuildContext context) async {
 }
 
 
-void showDraggingSnackBar(BuildContext context) {
+void showDraggingSnackBar(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Drop file(s) to ingest'),
-      duration: Duration(days: 1), // Long duration, we'll dismiss it manually
+    SnackBar(
+      content: Text(message),
+      duration: const Duration(days: 1), // Long duration, we'll dismiss it manually
       backgroundColor: Colors.blue,
     ),
   );

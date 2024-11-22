@@ -7,9 +7,9 @@ import 'package:roadway/core/mime.dart';
 import 'package:mime/mime.dart';
 
 class DataTableComponent extends StatelessWidget {
-  final Function(Map<String, dynamic>) onDataCellTap;
-
   const DataTableComponent({super.key, required this.onDataCellTap});
+
+  final Function(Map<String, dynamic>) onDataCellTap;
 
   Icon _getItemIcon(Object item) {
     if (item is Map<String, dynamic>) {
@@ -27,6 +27,10 @@ class DataTableComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double navRailWidth = 100;
+    double contentWidth = MediaQuery.of(context).size.width - navRailWidth;
+    double contentHeight = MediaQuery.of(context).size.height - 120;
+
     return Consumer<AppState>(
       builder: (context, appState, child) {
         return FutureBuilder<List<Map<String, dynamic>>>(
@@ -37,13 +41,15 @@ class DataTableComponent extends StatelessWidget {
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No data available'));
+              return const Center(child: Text('Drop file'));
             } else {
               return Container(
+                width: contentWidth,
+                height: contentHeight,
                 padding: const EdgeInsets.all(10),
                 child: DataTable2(
                   columns: const [
-                    DataColumn2(label: Text('Value'), size: ColumnSize.L),
+                    DataColumn2(label: Text('Value'), size: ColumnSize.S),
                     DataColumn2(label: Text('ID'), size: ColumnSize.S),
                   ],
                   rows: snapshot.data!
@@ -52,7 +58,8 @@ class DataTableComponent extends StatelessWidget {
                               Row(children: [
                                 _getItemIcon(item),
                                 const SizedBox(width: 10),
-                                Text(item['value']),
+                                Text(truncateStringWithEllipsis(item['value'], before: 12, after: 24),
+                                    style: const TextStyle(fontFamily: 'Courier New', fontWeight: FontWeight.bold)),
                               ]),
                               onTap: () => onDataCellTap(item),
                             ),

@@ -1,15 +1,25 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:roadway/component/data_table.dart';
 import 'package:roadway/component/plain_text_editor.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import 'package:roadway/drop.dart';
 
-// class AppContent extends StatelessWidget {
-//   const AppContent({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return const Center(child: Text('hello', style: TextStyle(fontSize: 36, fontFamily: 'HeptaSlab')));
-//   }
-// }
+Widget getDroppableTextEditor(BuildContext context, TextEditingController controller) {
+  return DropTarget(
+    onDragDone: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      controller.text = File(detail.files[0].path).readAsStringSync();
+    },
+    onDragEntered: (detail) {
+      showDraggingSnackBar(context, 'Drop file to view');
+    },
+    onDragExited: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    },
+    child: buildTextEditor('untitled', controller),
+  );
+}
 
 class AppContent extends StatelessWidget {
   const AppContent({super.key});
@@ -36,6 +46,11 @@ class _NavigatableContentState extends State<NavigatableContent> {
 
   @override
   Widget build(BuildContext context) {
+    double navRailWidth = 100;
+    // Get the width of the content area by using media query less the width of the navigation rail.
+    double contentWidth = MediaQuery.of(context).size.width - navRailWidth;
+    double contentHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -111,20 +126,18 @@ class _NavigatableContentState extends State<NavigatableContent> {
           const VerticalDivider(thickness: 0, width: 0),
           // This is the main content.
           SizedBox(
-            width: 800,
+            width: contentWidth,
+            height: contentHeight,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: <Widget>[
                 switch (_selectedIndex) {
-                  0 => DataTableComponent(onDataCellTap: (data) {
-                      print(data);
-                    }),
-                  1 => buildTextEditor("Title", controller),
+                  0 => buildDroppableDataTable(context),
+                  1 => getDroppableTextEditor(context, controller),
                   2 => const Placeholder(
                       key: Key('2'),
                       color: Colors.blue,
-                      strokeWidth: 16,
+                      strokeWidth: 1,
                     ),
                   _ => const SizedBox(),
                 },
@@ -136,3 +149,22 @@ class _NavigatableContentState extends State<NavigatableContent> {
     );
   }
 }
+
+Widget buildDroppableDataTable(BuildContext context) {
+  return DropTarget(
+    onDragDone: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      handleFileDrop(detail.files.map((xFile) => xFile.path).toList(), context);
+    },
+    onDragEntered: (detail) {
+      showDraggingSnackBar(context, 'Drop file(s) to ingest');
+    },
+    onDragExited: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    },
+    child: DataTableComponent(onDataCellTap: (data) {
+      print(data);
+    }),
+  );
+}
+
