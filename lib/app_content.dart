@@ -9,6 +9,11 @@ Widget getDroppableTextEditor(BuildContext context, TextEditingController contro
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // TODO: This is a temporary text editor for the app. It should be replaced with a more sophisticated editor.
+      // It fails to handle anything but UTF-8 encoded plain text.
+      // Here is the error thrown for, say, ANSI encoded text:
+      // Error: Unsupported operation: Unsupported encoding: ANSI_X3.4-1968
+      // flutter: #1      _File.readAsStringSync (dart:io/file_impl.dart:624:7)
       controller.text = File(detail.files[0].path).readAsStringSync();
     },
     onDragEntered: (detail) {
