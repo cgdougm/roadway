@@ -1,0 +1,3 @@
+The difference between either of the previous examples and creating a child directly without an intervening widget, is the extra BuildContext element that the additional widget adds. This is particularly noticeable when the tree contains an inherited widget that is referred to by a method like Scaffold.of, which visits the child widget's BuildContext ancestors.
+
+In the following example the button's onPressed callback is unable to find the enclosing ScaffoldState with Scaffold.of

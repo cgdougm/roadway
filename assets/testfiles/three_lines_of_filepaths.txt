@@ -1,0 +1,7 @@
+C:\Users\micro\Documents\Projects\DartFlutter\Cursor\roadway\assets\testfiles\content folder\something
+
+C:\Users\micro\Documents\Projects\DartFlutter\Cursor\roadway\assets\testfiles\folder
+
+"C:\Users\micro\Documents\Projects\DartFlutter\Cursor\roadway\assets\testfiles\folder"
+
+

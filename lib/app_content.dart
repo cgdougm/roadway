@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:roadway/component/data_table.dart';
-import 'package:roadway/component/plain_text_editor.dart';
+import 'package:roadway/component/md.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:roadway/drop.dart';
-import 'package:roadway/component/layout_dimensions.dart';
+import 'package:roadway/layout/dimensions.dart';
+import 'package:roadway/controller/text_file_controller.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -45,7 +46,7 @@ class NavigatableContent extends StatefulWidget {
 
 class _NavigatableContentState extends State<NavigatableContent> {
   int _selectedIndex = 0;
-  final controller = TextEditingController();
+  final controller = TextFileController();
 
   @override
   Widget build(BuildContext context) {
@@ -171,8 +172,7 @@ Widget buildDroppableDataTable(BuildContext context) {
   );
 }
 
-Widget getDroppableTextEditor(
-    BuildContext context, TextEditingController controller) {
+Widget getDroppableTextEditor(BuildContext context, TextFileController controller) {
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -189,6 +189,6 @@ Widget getDroppableTextEditor(
     onDragExited: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
     },
-    child: buildTextEditor('untitled', controller),
+    child: MarkdownEditorWidget(controller: controller),
   );
 }

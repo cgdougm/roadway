@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:roadway/core/text.dart';
+import 'package:roadway/controller/text_file_controller.dart';
 import 'package:roadway/icon/markdown.dart';
+import 'package:roadway/layout/dimensions.dart';
 
-/// A widget that has a plain text field on the left, and a markdown widget on the right.
-/// There is a bar at the top that has on the right side three grouped buttons, for "text, both and rendered"
-/// The bar displayes the title argument given, typically  the source file for the markdown.
-///
+/// A widget that has a plain text field on the left, and
+/// a markdown widget on the right.
+/// There is a bar at the top that has on the right side three
+/// grouped buttons, for "text, both and rendered"
+/// The bar displays the filePath value on the textFileController
+/// (an extended textEditingController)
 
 class MarkdownEditorWidget extends StatefulWidget {
-  final String title;
-  final TextEditingController controller;
+  final TextFileController controller;
 
   const MarkdownEditorWidget({
     super.key,
-    required this.title,
     required this.controller,
   });
 
@@ -24,18 +26,32 @@ class MarkdownEditorWidget extends StatefulWidget {
 
 class MarkdownEditorWidgetState extends State<MarkdownEditorWidget> {
   ViewMode _viewMode = ViewMode.both;
+  bool plainMode = false;
+
+  void setPlainMode(bool plainMode) {
+    this.plainMode = plainMode;
+    _viewMode = plainMode ? ViewMode.text : ViewMode.both;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final dimensions = LayoutDimensions.of(context);
+    // TODO: use a color scheme
+    // final colorScheme = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        children: [
-          _buildCustomTopBar(),
-          Expanded(
-            child: _buildEditorContent(),
-          ),
-        ],
+      child: Container(
+        width: dimensions.contentWidth,
+        height: dimensions.contentHeight - 16,
+        child: Column(
+          children: [
+            _buildCustomTopBar(),
+            Expanded(
+              child: _buildEditorContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -50,28 +66,29 @@ class MarkdownEditorWidgetState extends State<MarkdownEditorWidget> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              leftElipses(widget.title, 30),
+              leftElipses(widget.controller.filePath ?? 'untitled', 30),
               style: const TextStyle(fontFamily: 'Courier', fontSize: 16),
             ),
           ),
           const SizedBox(width: 16),
-          ToggleButtons(
-            onPressed: (int index) {
-              setState(() {
-                _viewMode = ViewMode.values[index];
-              });
-            },
-            isSelected: [
-              _viewMode == ViewMode.text,
-              _viewMode == ViewMode.both,
-              _viewMode == ViewMode.rendered,
-            ],
-            children: const [
-              Icon(Icons.text_fields),
-              Icon(Icons.view_agenda),
-              Icon(Icons.preview),
-            ],
-          ),
+          if (!plainMode)
+            ToggleButtons(
+              onPressed: (int index) {
+                setState(() {
+                  _viewMode = ViewMode.values[index];
+                });
+              },
+              isSelected: [
+                _viewMode == ViewMode.text,
+                _viewMode == ViewMode.both,
+                _viewMode == ViewMode.rendered,
+              ],
+              children: const [
+                Icon(Icons.text_fields),
+                Icon(Icons.view_agenda),
+                Icon(Icons.preview),
+              ],
+            ),
         ],
       ),
     );

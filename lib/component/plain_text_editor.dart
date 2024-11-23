@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:roadway/component/layout_dimensions.dart';
+import 'package:roadway/layout/dimensions.dart';
+import 'package:roadway/controller/text_file_controller.dart';
 
 Widget buildTextEditor(
-    String title, TextEditingController textEditingController) {
+    TextFileController textEditingController) {
   return Builder(
     builder: (BuildContext context) {
       final dimensions = LayoutDimensions.of(context);
@@ -17,7 +18,7 @@ Widget buildTextEditor(
               color: colorScheme.secondaryContainer,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
               child: Text(
-                title,
+                textEditingController.filePath ?? 'untitled',
                 textAlign: TextAlign.left,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,

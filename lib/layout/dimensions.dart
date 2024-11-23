@@ -1,5 +1,22 @@
 import 'package:flutter/material.dart';
 
+/// An InheritedWidget that provides the dimensions of the content area.
+/// This is used to layout the components in the app.
+///
+/// Example usage:
+///    builder: (BuildContext context) {
+///      final dimensions = LayoutDimensions.of(context);
+///      final colorScheme = Theme.of(context).colorScheme;
+///      return Column(
+///        children: [
+///          Container(
+///            width: dimensions.contentWidth,
+///            height: dimensions.contentHeight,
+///          ),
+///        ],
+///      );
+///    }
+
 class LayoutDimensions extends InheritedWidget {
   final double contentWidth;
   final double contentHeight;
