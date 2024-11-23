@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:roadway/component/layout_dimensions.dart';
 
 Widget buildTextEditor(
     String title, TextEditingController textEditingController) {
   return Builder(
     builder: (BuildContext context) {
-      double navRailWidth = 100;
-      // Get the width of the content area by using media query less the width of the navigation rail.
-      double contentWidth = MediaQuery.of(context).size.width - navRailWidth;
-      double contentHeight = MediaQuery.of(context).size.height - 51;
-
+      final dimensions = LayoutDimensions.of(context);
       final colorScheme = Theme.of(context).colorScheme;
 
       return Column(
@@ -29,24 +26,27 @@ Widget buildTextEditor(
               ),
             ),
           ),
-            Container(
-              width: contentWidth,
-              height: contentHeight,
-              padding: const EdgeInsets.all(6),
-              child: TextField(
-                controller: textEditingController,
-                minLines: null,
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
-                decoration: InputDecoration(
-                  hintText: '...plain text...',
-                  hintStyle: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: colorScheme.inversePrimary),
-                  fillColor: colorScheme.surface,
-                  filled: true,
-                ),
+          Container(
+            width: dimensions.contentWidth,
+            height: dimensions.contentHeight - 51,
+            padding: const EdgeInsets.all(6),
+            child: TextField(
+              controller: textEditingController,
+              minLines: null,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              style: const TextStyle(fontSize: 16, fontFamily: 'Courier'),
+              decoration: InputDecoration(
+                hintText: '...plain text...',
+                hintStyle: TextStyle(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: colorScheme.inversePrimary),
+                fillColor: colorScheme.surface,
+                filled: true,
               ),
             ),
+          ),
         ],
       );
     },

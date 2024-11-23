@@ -4,26 +4,24 @@ import 'package:roadway/component/data_table.dart';
 import 'package:roadway/component/plain_text_editor.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:roadway/drop.dart';
+import 'package:roadway/component/layout_dimensions.dart';
 
-Widget getDroppableTextEditor(BuildContext context, TextEditingController controller) {
-  return DropTarget(
-    onDragDone: (detail) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      // TODO: This is a temporary text editor for the app. It should be replaced with a more sophisticated editor.
-      // It fails to handle anything but UTF-8 encoded plain text.
-      // Here is the error thrown for, say, ANSI encoded text:
-      // Error: Unsupported operation: Unsupported encoding: ANSI_X3.4-1968
-      // flutter: #1      _File.readAsStringSync (dart:io/file_impl.dart:624:7)
-      controller.text = File(detail.files[0].path).readAsStringSync();
-    },
-    onDragEntered: (detail) {
-      showDraggingSnackBar(context, 'Drop file to view');
-    },
-    onDragExited: (detail) {
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    },
-    child: buildTextEditor('untitled', controller),
-  );
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    const rowInsetWidth = 100.0; // Navigation rail width
+    final contentWidth = MediaQuery.of(context).size.width - rowInsetWidth;
+    final contentHeight = MediaQuery.of(context).size.height - 51;
+
+    return LayoutDimensions(
+      contentWidth: contentWidth,
+      contentHeight: contentHeight,
+      rowInsetWidth: rowInsetWidth,
+      child: const NavigatableContent(),
+    );
+  }
 }
 
 class AppContent extends StatelessWidget {
@@ -31,15 +29,15 @@ class AppContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: NavigatableContent(),
+      home: HomePage(),
     );
   }
 }
 
 class NavigatableContent extends StatefulWidget {
-  NavigatableContent({super.key});
+  const NavigatableContent({super.key});
 
   @override
   State<NavigatableContent> createState() => _NavigatableContentState();
@@ -51,10 +49,10 @@ class _NavigatableContentState extends State<NavigatableContent> {
 
   @override
   Widget build(BuildContext context) {
-    double navRailWidth = 100;
+    final dimensions = LayoutDimensions.of(context);
     // Get the width of the content area by using media query less the width of the navigation rail.
-    double contentWidth = MediaQuery.of(context).size.width - navRailWidth;
-    double contentHeight = MediaQuery.of(context).size.height;
+    double contentWidth = dimensions.contentWidth;
+    double contentHeight = dimensions.contentHeight;
 
     return Scaffold(
       body: Row(
@@ -70,7 +68,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
                 _selectedIndex = index;
               });
             },
-            labelType: NavigationRailLabelType.selected,
+            labelType: NavigationRailLabelType.all,
             trailing: PopupMenuButton(
               icon: const Icon(Icons.more_horiz_rounded),
               position: PopupMenuPosition.under,
@@ -114,12 +112,12 @@ class _NavigatableContentState extends State<NavigatableContent> {
               NavigationRailDestination(
                 icon: Icon(Icons.data_array_outlined),
                 selectedIcon: Icon(Icons.data_array),
-                label: Text('Data'),
+                label: Text('Data Table'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.file_present_outlined),
                 selectedIcon: Icon(Icons.file_present),
-                label: Text('Edit'),
+                label: Text('Text Editor'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.star_border),
@@ -173,3 +171,24 @@ Widget buildDroppableDataTable(BuildContext context) {
   );
 }
 
+Widget getDroppableTextEditor(
+    BuildContext context, TextEditingController controller) {
+  return DropTarget(
+    onDragDone: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      // TODO: This is a temporary text editor for the app. It should be replaced with a more sophisticated editor.
+      // It fails to handle anything but UTF-8 encoded plain text.
+      // Here is the error thrown for, say, ANSI encoded text:
+      // Error: Unsupported operation: Unsupported encoding: ANSI_X3.4-1968
+      // flutter: #1      _File.readAsStringSync (dart:io/file_impl.dart:624:7)
+      controller.text = File(detail.files[0].path).readAsStringSync();
+    },
+    onDragEntered: (detail) {
+      showDraggingSnackBar(context, 'Drop file to view');
+    },
+    onDragExited: (detail) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    },
+    child: buildTextEditor('untitled', controller),
+  );
+}
