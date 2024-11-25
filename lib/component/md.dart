@@ -41,7 +41,7 @@ class MarkdownEditorWidgetState extends State<MarkdownEditorWidget> {
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Container(
+      child: SizedBox(
         width: dimensions.contentWidth,
         height: dimensions.contentHeight - 16,
         child: Column(

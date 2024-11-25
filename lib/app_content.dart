@@ -6,6 +6,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:roadway/drop.dart';
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/controller/text_file_controller.dart';
+import 'package:roadway/component/filebrowser.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -123,7 +124,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
               NavigationRailDestination(
                 icon: Icon(Icons.star_border),
                 selectedIcon: Icon(Icons.star),
-                label: Text('Third'),
+                label: Text('File browser'),
               ),
             ],
           ),
@@ -138,11 +139,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
                 switch (_selectedIndex) {
                   0 => buildDroppableDataTable(context),
                   1 => getDroppableTextEditor(context, controller),
-                  2 => const Placeholder(
-                      key: Key('2'),
-                      color: Colors.blue,
-                      strokeWidth: 1,
-                    ),
+                  2 => const FileBrowser(),
                   _ => const SizedBox(),
                 },
               ],
