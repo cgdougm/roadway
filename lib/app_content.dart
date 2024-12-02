@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:roadway/component/data_table.dart';
+import 'package:roadway/component/data_cards.dart';
 import 'package:roadway/component/md.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:roadway/drop.dart';
@@ -133,16 +133,13 @@ class _NavigatableContentState extends State<NavigatableContent> {
           SizedBox(
             width: contentWidth,
             height: contentHeight,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: <Widget>[
-                switch (_selectedIndex) {
-                  0 => buildDroppableDataTable(context),
-                  1 => getDroppableTextEditor(context, controller),
-                  2 => const FileBrowser(),
-                  _ => const SizedBox(),
-                },
-              ],
+            child: Container(
+              child: switch (_selectedIndex) {
+                0 => buildDroppableDataTable(context, controller),
+                1 => getDroppableTextEditor(context, controller),
+                2 => const FileBrowser(),
+                _ => const SizedBox(),
+              },
             ),
           ),
         ],
@@ -151,7 +148,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
   }
 }
 
-Widget buildDroppableDataTable(BuildContext context) {
+Widget buildDroppableDataTable(BuildContext context, TextFileController controller) {
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -163,8 +160,9 @@ Widget buildDroppableDataTable(BuildContext context) {
     onDragExited: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
     },
-    child: DataTableComponent(onDataCellTap: (data) {
+    child: DataCardsComponent(onDataCellTap: (data) {
       print(data);
+      controller.text = File(data['value']).readAsStringSync();
     }),
   );
 }
