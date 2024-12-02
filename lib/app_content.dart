@@ -49,6 +49,12 @@ class _NavigatableContentState extends State<NavigatableContent> {
   int _selectedIndex = 0;
   final controller = TextFileController();
 
+  void switchToTextEditor() {
+    setState(() {
+      _selectedIndex = 1;  // Index 1 corresponds to the Text Editor tab
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final dimensions = LayoutDimensions.of(context);
@@ -135,7 +141,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
             height: contentHeight,
             child: Container(
               child: switch (_selectedIndex) {
-                0 => buildDroppableDataTable(context, controller),
+                0 => buildDroppableDataTable(context, controller, switchToTextEditor),
                 1 => getDroppableTextEditor(context, controller),
                 2 => const FileBrowser(),
                 _ => const SizedBox(),
@@ -148,7 +154,11 @@ class _NavigatableContentState extends State<NavigatableContent> {
   }
 }
 
-Widget buildDroppableDataTable(BuildContext context, TextFileController controller) {
+Widget buildDroppableDataTable(
+  BuildContext context, 
+  TextFileController controller,
+  VoidCallback onSwitchToEditor,
+) {
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -163,6 +173,7 @@ Widget buildDroppableDataTable(BuildContext context, TextFileController controll
     child: DataCardsComponent(onDataCellTap: (data) {
       print(data);
       controller.text = File(data['value']).readAsStringSync();
+      onSwitchToEditor();  // Switch to text editor after loading the file
     }),
   );
 }
