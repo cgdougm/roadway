@@ -201,11 +201,14 @@ class FileInfo {
     final String? mimeType = lookupMimeType(file.path);
     result['mimetype'] = mimeType ?? 'Unknown';
 
-    final int fileLength = fileToProcess.isFolder() ? 0 : await fileToProcess.length();
+    final int fileLength =
+        fileToProcess.isFolder() ? 0 : await fileToProcess.length();
     result['fileLength'] = fileLength;
-    result['fileLengthFormatted'] = fileToProcess.isFolder() ? 'n/a' : formatFileSize(fileLength);
+    result['fileLengthFormatted'] =
+        fileToProcess.isFolder() ? 'n/a' : formatFileSize(fileLength);
 
-    final DateTime lastModified = fileToProcess.isFolder() ? DateTime.now() : await file.lastModified();
+    final DateTime lastModified =
+        fileToProcess.isFolder() ? DateTime.now() : await file.lastModified();
     result['lastModified'] = lastModified;
     final String formattedDate = formatDateTime(lastModified, withAgo: false);
     result['lastModifiedFormatted'] = formattedDate;

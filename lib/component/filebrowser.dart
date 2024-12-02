@@ -1,9 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'package:path/path.dart' as path;
+import 'package:path/path.dart' as path_module;
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/core/mime.dart';
+
+extension DirectoryExtension on Directory {
+  bool get isAccessible {
+    try {
+      // First check if the directory exists
+      if (!existsSync()) {
+        return false;
+      }
+      
+      // If it's a virtual folder, we consider it accessible
+      // The actual access will happen when resolving the path
+      if (isVirtualFolder) {
+        return true;
+      }
+      
+      // For regular folders, check stats
+      statSync();
+      return true;
+      
+    } on FileSystemException catch (e) {
+      debugPrint('Directory access error: $path - ${e.message}');
+      return false;
+    }
+  }
+
+  bool get isVirtualFolder {
+    // Common Windows virtual folder names
+    const virtualFolders = {
+      'My Documents',
+      'My Music',
+      'My Pictures',
+      'My Videos',
+      'Desktop',
+      'Downloads',
+      'Documents',
+      'Music',
+      'Pictures',
+      'Videos'
+    };
+    
+    return Platform.isWindows && 
+           virtualFolders.contains(path_module.basename(path));
+  }
+
+  Future<Directory> resolveVirtualPath() async {
+    if (!Platform.isWindows) return this;
+    
+    try {
+      // Use Windows known folder redirection
+      switch (path_module.basename(path)) {
+        case 'My Documents':
+        case 'Documents':
+          final dir = await getApplicationDocumentsDirectory();
+          return Directory(dir.path);
+        case 'My Music':
+        case 'Music':
+          // You might need to add platform_folders package for these
+          // For now, construct typical path
+          return Directory('${path_module.dirname(path)}\\Music');
+        case 'My Pictures':
+        case 'Pictures':
+          return Directory('${path_module.dirname(path)}\\Pictures');
+        case 'My Videos':
+        case 'Videos':
+          return Directory('${path_module.dirname(path)}\\Videos');
+        default:
+          return this;
+      }
+    } catch (e) {
+      debugPrint('Error resolving virtual path: $path - $e');
+      return this;
+    }
+  }
+}
 
 class FileBrowser extends StatefulWidget {
   final Function(File)? onFileView;
@@ -39,19 +113,33 @@ class FileBrowserState extends State<FileBrowser> {
     });
   }
 
-  void _updateContents() {
+  void _updateContents() async {
     if (currentDirectory != null) {
-      setState(() {
-        contents = currentDirectory!.listSync();
-      });
+      if (currentDirectory!.isAccessible) {
+        setState(() {
+          contents = currentDirectory!.listSync();
+        });
+      } else {
+        debugPrint('inaccessible: ${currentDirectory!.path}');
+        // TODO: Mark the Card as inaccessible
+
+      }
     }
   }
 
-  void _navigateToDirectory(Directory newDir) {
-    setState(() {
-      currentDirectory = newDir;
-      _updateContents();
-    });
+  void _navigateToDirectory(Directory dir) async {
+    if (dir.isVirtualFolder) {
+      final resolvedDir = await dir.resolveVirtualPath();
+      setState(() {
+        currentDirectory = resolvedDir;
+        _updateContents();
+      });
+    } else {
+      setState(() {
+        currentDirectory = dir;
+        _updateContents();
+      });
+    }
   }
 
   Widget _buildFilePreview(String filePath) {
@@ -65,7 +153,8 @@ class FileBrowserState extends State<FileBrowser> {
           child: SizedBox(
               width: 2 * dimensions.contentWidth / 3 - 8,
               height: dimensions.contentHeight - 8,
-              child: Image.file(File(filePath), fit: BoxFit.scaleDown, alignment: Alignment.center))),
+              child: Image.file(File(filePath),
+                  fit: BoxFit.scaleDown, alignment: Alignment.center))),
     );
   }
 
@@ -78,26 +167,26 @@ class FileBrowserState extends State<FileBrowser> {
     return Card(
       color: colorScheme.primaryContainer,
       child: ListTile(
-        title: Text(path.basename(currentDirectory!.path),
+        title: Text(path_module.basename(currentDirectory!.path),
             style: TextStyle(
                 fontWeight: FontWeight.bold, color: colorScheme.secondary)),
         subtitle: RichText(
           text: TextSpan(children: [
             TextSpan(
-                text: '${path.dirname(currentDirectory!.path)}\n',
+                text: '${path_module.dirname(currentDirectory!.path)}\n',
                 style: TextStyle(
                     fontSize: 12,
                     fontFamily: 'Courier',
                     fontWeight: FontWeight.w700,
                     color: colorScheme.tertiary)),
-            if (filesInCurrentDirectory.length > 0)
+            if (filesInCurrentDirectory.isNotEmpty)
               TextSpan(
                   text: '${filesInCurrentDirectory.length} files, ',
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: colorScheme.tertiary)),
-            if (directoriesInCurrentDirectory.length > 0)
+            if (directoriesInCurrentDirectory.isNotEmpty)
               TextSpan(
                   text: '${directoriesInCurrentDirectory.length} directories',
                   style: TextStyle(
@@ -127,10 +216,12 @@ class FileBrowserState extends State<FileBrowser> {
       itemCount: subdirectories.length,
       itemBuilder: (context, index) {
         final dir = subdirectories[index];
+        final dirIsAccessible = dir.isAccessible;
         return Card(
-          surfaceTintColor: Colors.green,
+          surfaceTintColor: dirIsAccessible ? Colors.green : Colors.red,
+          color: dirIsAccessible ? null : Colors.red,
           child: ListTile(
-            title: Text(path.basename(dir.path),
+            title: Text(path_module.basename(dir.path),
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             leading: IconButton(
               icon: const Icon(Icons.arrow_forward, size: 16),
@@ -156,7 +247,7 @@ class FileBrowserState extends State<FileBrowser> {
         return Card(
           surfaceTintColor: Colors.yellow,
           child: ListTile(
-            title: Text(path.basename(file.path),
+            title: Text(path_module.basename(file.path),
                 style: const TextStyle(
                     fontFamily: 'Courier', fontWeight: FontWeight.bold)),
             leading: IconButton(
