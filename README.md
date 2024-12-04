@@ -1,9 +1,14 @@
 # Roadway
 
-| *Productivity desktop tool that manages project plans.*
+| *Productivity desktop tool that organizes assets.*
+
+![Roadway screengrab](./assets/design/roadway-screengrab.png)
 
 A project plan's **assets** are the files, websites, images, documents we collect and produce to guide a project. They are found in many locations on your computers and in the cloud. 
 
+**Roadway** responds to the need to *see, associate* and *keep track* of these varied items that can simply be dragged into the app.
+
+## Traditional asset management
 Traditionally, the assets of a project plan imply their relationships to each other using:
 * name
 * location or path (URI hierarchy)

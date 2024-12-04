@@ -29,8 +29,24 @@ class FileCard extends StatelessWidget {
             final fileInfo = snapshot.data!;
             return ListTile(
               leading: getIconForMimeType(fileInfo.mimeType),
-              title: Text(fileInfo.fileName),
-              subtitle: Text('${fileInfo.fileLengthFormatted}  ${fileInfo.lastModified}'),
+              enabled: fileInfo.mimeType.startsWith('text/'),
+              title: Text(fileInfo.fileName,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontFamily: 'HeptaSlab',
+                      fontWeight: FontWeight.bold)),
+              subtitle: Wrap(
+                children: [
+                  Text(fileInfo.fileFolder,
+                      style:
+                          const TextStyle(fontSize: 10, fontFamily: 'Courier')),
+                  Text(fileInfo.lastModifiedFormatted,
+                      style: const TextStyle(
+                          fontSize: 10, fontWeight: FontWeight.w700)),
+                  Text(' (${fileInfo.lastModifiedAgo})',
+                      style: const TextStyle(fontSize: 10)),
+                ],
+              ),
             );
           }
         },

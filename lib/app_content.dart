@@ -121,17 +121,17 @@ class _NavigatableContentState extends State<NavigatableContent> {
               NavigationRailDestination(
                 icon: Icon(Icons.data_array_outlined),
                 selectedIcon: Icon(Icons.data_array),
-                label: Text('Data Table'),
+                label: Text('Assets'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.file_present_outlined),
                 selectedIcon: Icon(Icons.file_present),
-                label: Text('Text Editor'),
+                label: Text('Editor'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.star_border),
                 selectedIcon: Icon(Icons.star),
-                label: Text('File browser'),
+                label: Text('Files'),
               ),
             ],
           ),
