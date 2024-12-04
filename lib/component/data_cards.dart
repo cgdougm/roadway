@@ -4,9 +4,19 @@ import 'package:roadway/app_state.dart';
 import 'package:roadway/component/entity.dart';
 
 class DataCardsComponent extends StatelessWidget {
-  const DataCardsComponent({super.key, required this.onDataCellTap});
+  const DataCardsComponent(
+      {super.key,
+      required this.onDataCellTap,
+      required this.contentWidth,
+      required this.contentHeight,
+      required this.widthUnits,
+      required this.heightUnits});
 
   final Function(Map<String, dynamic>) onDataCellTap;
+  final double contentWidth;
+  final double contentHeight;
+  final int widthUnits;
+  final int heightUnits;
 
   @override
   Widget build(BuildContext context) {
@@ -22,16 +32,24 @@ class DataCardsComponent extends StatelessWidget {
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(child: Text('Drop file'));
             } else {
-              print('Num items: ${snapshot.data!.length}');
               // a scrollable list of Entity widgets
-              return ListView.builder(
-                itemCount: snapshot.data!.length,
-                itemBuilder: (context, index) {
-                  return Entity(
-                    item: snapshot.data![index],
-                    onTap: () => onDataCellTap(snapshot.data![index]),
-                  );
-                },
+              return SizedBox(
+                width: contentWidth,
+                height: contentHeight,
+                child: ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Entity(
+                        widthUnits: widthUnits,
+                        heightUnits: heightUnits,
+                        item: snapshot.data![index],
+                        onTap: () => onDataCellTap(snapshot.data![index]),
+                      ),
+                    );
+                  },
+                ),
               );
             }
           },

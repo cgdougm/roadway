@@ -7,6 +7,7 @@ import 'package:roadway/drop.dart';
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/controller/text_file_controller.dart';
 import 'package:roadway/component/filebrowser.dart';
+import 'dart:convert';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -51,7 +52,7 @@ class _NavigatableContentState extends State<NavigatableContent> {
 
   void switchToTextEditor() {
     setState(() {
-      _selectedIndex = 1;  // Index 1 corresponds to the Text Editor tab
+      _selectedIndex = 1; // Index 1 corresponds to the Text Editor tab
     });
   }
 
@@ -135,13 +136,15 @@ class _NavigatableContentState extends State<NavigatableContent> {
             ],
           ),
           const VerticalDivider(thickness: 0, width: 0),
+          const SizedBox(width: 10),
           // This is the main content.
           SizedBox(
             width: contentWidth,
             height: contentHeight,
             child: Container(
               child: switch (_selectedIndex) {
-                0 => buildDroppableDataTable(context, controller, switchToTextEditor),
+                0 => buildDroppableDataTable(
+                    context, controller, switchToTextEditor, contentWidth, contentHeight),
                 1 => getDroppableTextEditor(context, controller),
                 2 => const FileBrowser(),
                 _ => const SizedBox(),
@@ -155,9 +158,12 @@ class _NavigatableContentState extends State<NavigatableContent> {
 }
 
 Widget buildDroppableDataTable(
-  BuildContext context, 
+  BuildContext context,
   TextFileController controller,
   VoidCallback onSwitchToEditor,
+  double contentWidth,
+  double contentHeight,
+  {int widthUnits = 8, int heightUnits = 2}
 ) {
   return DropTarget(
     onDragDone: (detail) {
@@ -170,24 +176,39 @@ Widget buildDroppableDataTable(
     onDragExited: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
     },
-    child: DataCardsComponent(onDataCellTap: (data) {
-      print(data);
-      controller.text = File(data['value']).readAsStringSync();
-      onSwitchToEditor();  // Switch to text editor after loading the file
-    }),
+    child: Row(
+      children: [
+        DataCardsComponent(
+          contentWidth: widthUnits * 48,
+          contentHeight: contentHeight,
+          widthUnits: widthUnits,
+          heightUnits: heightUnits,
+          onDataCellTap: (data) {
+            final file = File(data['value']);
+            try {
+            controller.text = file.readAsStringSync(encoding: utf8);
+          } catch (e) {
+            controller.text = file.readAsStringSync(encoding: latin1);
+          }
+          onSwitchToEditor();
+        }),
+        SizedBox(width: contentWidth - widthUnits * 48),
+      ],
+    ),
   );
 }
 
-Widget getDroppableTextEditor(BuildContext context, TextFileController controller) {
+Widget getDroppableTextEditor(
+    BuildContext context, TextFileController controller) {
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      // TODO: This is a temporary text editor for the app. It should be replaced with a more sophisticated editor.
-      // It fails to handle anything but UTF-8 encoded plain text.
-      // Here is the error thrown for, say, ANSI encoded text:
-      // Error: Unsupported operation: Unsupported encoding: ANSI_X3.4-1968
-      // flutter: #1      _File.readAsStringSync (dart:io/file_impl.dart:624:7)
-      controller.text = File(detail.files[0].path).readAsStringSync();
+      final file = File(detail.files[0].path);
+      try {
+        controller.text = file.readAsStringSync(encoding: utf8);
+      } catch (e) {
+        controller.text = file.readAsStringSync(encoding: latin1);
+      }
     },
     onDragEntered: (detail) {
       showDraggingSnackBar(context, 'Drop file to view');
