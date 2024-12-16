@@ -27,7 +27,8 @@ void main() async {
     // BitsDojo Window Settings
     appWindow.minSize = const Size(360, 360);
     appWindow.size = const Size(1280, 720);
-    appWindow.alignment = Alignment.center;
+    appWindow.alignment = Alignment.topLeft;
+    appWindow.position = const Offset(10, 10);
     appWindow.show();
   });
 }
@@ -124,7 +125,7 @@ class _AppPageState extends State<AppPage> with SingleTickerProviderStateMixin {
             ),
           ),
           // Main content
-          Expanded(
+          const Expanded(
             child: AppContent(),
           ),
         ]),

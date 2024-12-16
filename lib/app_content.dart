@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 import 'package:roadway/component/data_cards.dart';
 import 'package:roadway/component/md.dart';
 import 'package:desktop_drop/desktop_drop.dart';
@@ -143,8 +144,8 @@ class _NavigatableContentState extends State<NavigatableContent> {
             height: contentHeight,
             child: Container(
               child: switch (_selectedIndex) {
-                0 => buildDroppableDataTable(
-                    context, controller, switchToTextEditor, contentWidth, contentHeight),
+                0 => buildDroppableDataTable(context, controller,
+                    switchToTextEditor, contentWidth, contentHeight),
                 1 => getDroppableTextEditor(context, controller),
                 2 => const FileBrowser(),
                 _ => const SizedBox(),
@@ -158,13 +159,13 @@ class _NavigatableContentState extends State<NavigatableContent> {
 }
 
 Widget buildDroppableDataTable(
-  BuildContext context,
-  TextFileController controller,
-  VoidCallback onSwitchToEditor,
-  double contentWidth,
-  double contentHeight,
-  {int widthUnits = 8, int heightUnits = 2}
-) {
+    BuildContext context,
+    TextFileController controller,
+    VoidCallback onSwitchToEditor,
+    double contentWidth,
+    double contentHeight,
+    {int widthUnits = 8,
+    int heightUnits = 2}) {
   return DropTarget(
     onDragDone: (detail) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -179,19 +180,26 @@ Widget buildDroppableDataTable(
     child: Row(
       children: [
         DataCardsComponent(
-          contentWidth: widthUnits * 48,
-          contentHeight: contentHeight,
-          widthUnits: widthUnits,
-          heightUnits: heightUnits,
-          onDataCellTap: (data) {
-            final file = File(data['value']);
-            try {
-            controller.text = file.readAsStringSync(encoding: utf8);
-          } catch (e) {
-            controller.text = file.readAsStringSync(encoding: latin1);
-          }
-          onSwitchToEditor();
-        }),
+            contentWidth: widthUnits * 48,
+            contentHeight: contentHeight,
+            widthUnits: widthUnits,
+            heightUnits: heightUnits,
+            onDataCellTap: (data) {
+              final mimeType = lookupMimeType(data['value']);
+              if (mimeType?.startsWith('text/') ?? false) {
+                final file = File(data['value']);
+                try {
+                  controller.text = file.readAsStringSync(encoding: utf8);
+                } catch (e) {
+                  controller.text = file.readAsStringSync(encoding: latin1);
+                }
+                onSwitchToEditor();
+              } else if (mimeType?.startsWith('image/') ?? false) {
+                // TODO: handle image
+              } else if (mimeType == null) {
+                // TODO: handle directory
+              }
+            }),
         SizedBox(width: contentWidth - widthUnits * 48),
       ],
     ),

@@ -1,32 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:mime/mime.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path_module;
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/core/mime.dart';
 
+enum DirectoryAccessibilityType {
+  accessible,
+  notExists,
+  statError,
+  virtual,
+}
+
 extension DirectoryExtension on Directory {
-  bool get isAccessible {
+  DirectoryAccessibilityType get accessibilityType {
+    // First check if the directory exists
+    if (!existsSync()) {
+      return DirectoryAccessibilityType.notExists;
+    }
+
+    if (isVirtualFolder) {
+      return DirectoryAccessibilityType.virtual;
+    }
+
     try {
-      // First check if the directory exists
-      if (!existsSync()) {
-        return false;
-      }
-      
-      // If it's a virtual folder, we consider it accessible
-      // The actual access will happen when resolving the path
-      if (isVirtualFolder) {
-        return true;
-      }
-      
-      // For regular folders, check stats
       statSync();
-      return true;
-      
+      return DirectoryAccessibilityType.accessible;
     } on FileSystemException catch (e) {
       debugPrint('Directory access error: $path - ${e.message}');
-      return false;
+      return DirectoryAccessibilityType.statError;
     }
+  }
+
+  Future<Directory> getHomeDirectory() async {
+    if (Platform.isWindows) {
+      // On Windows, USERPROFILE environment variable contains the home directory
+      final userProfile = Platform.environment['USERPROFILE'];
+      if (userProfile != null) {
+        return Directory(userProfile);
+      }
+    } else {
+      // On Unix-like systems (Linux, macOS), HOME environment variable contains the home directory
+      final home = Platform.environment['HOME'];
+      if (home != null) {
+        return Directory(home);
+      }
+    }
+
+    throw Exception('Home directory not found');
   }
 
   bool get isVirtualFolder {
@@ -43,14 +65,15 @@ extension DirectoryExtension on Directory {
       'Pictures',
       'Videos'
     };
-    
-    return Platform.isWindows && 
-           virtualFolders.contains(path_module.basename(path));
+
+    return Platform.isWindows &&
+        virtualFolders.contains(path_module.basename(path));
   }
 
   Future<Directory> resolveVirtualPath() async {
     if (!Platform.isWindows) return this;
-    
+    // Get the user's home directory
+    final homeDir = await getHomeDirectory();
     try {
       // Use Windows known folder redirection
       switch (path_module.basename(path)) {
@@ -59,16 +82,11 @@ extension DirectoryExtension on Directory {
           final dir = await getApplicationDocumentsDirectory();
           return Directory(dir.path);
         case 'My Music':
-        case 'Music':
-          // You might need to add platform_folders package for these
-          // For now, construct typical path
-          return Directory('${path_module.dirname(path)}\\Music');
+          return Directory('${homeDir.path}\\Music');
         case 'My Pictures':
-        case 'Pictures':
-          return Directory('${path_module.dirname(path)}\\Pictures');
+          return Directory('${homeDir.path}\\Pictures');
         case 'My Videos':
-        case 'Videos':
-          return Directory('${path_module.dirname(path)}\\Videos');
+          return Directory('${homeDir.path}\\Videos');
         default:
           return this;
       }
@@ -115,14 +133,22 @@ class FileBrowserState extends State<FileBrowser> {
 
   void _updateContents() async {
     if (currentDirectory != null) {
-      if (currentDirectory!.isAccessible) {
-        setState(() {
-          contents = currentDirectory!.listSync();
-        });
-      } else {
-        debugPrint('inaccessible: ${currentDirectory!.path}');
-        // TODO: Mark the Card as inaccessible
-
+      switch (currentDirectory!.accessibilityType) {
+        case DirectoryAccessibilityType.accessible:
+          setState(() {
+            contents = currentDirectory!.listSync();
+          });
+          break;
+        case DirectoryAccessibilityType.virtual:
+          final resolvedDir = await currentDirectory!.resolveVirtualPath();
+          setState(() {
+            contents = resolvedDir.listSync();
+          });
+          break;
+        default:
+          debugPrint('statError: ${currentDirectory!.path}');
+          // TODO: Mark the Card as inaccessible
+          break;
       }
     }
   }
@@ -145,17 +171,19 @@ class FileBrowserState extends State<FileBrowser> {
   Widget _buildFilePreview(String filePath) {
     final dimensions = LayoutDimensions.of(context);
     debugPrint('buildFilePreview filePath: $filePath');
-    return SizedBox(
-      width: 2 * dimensions.contentWidth / 3 - 8,
-      height: dimensions.contentHeight - 8,
-      // child: Center(child: Text('Preview $filePath')),
-      child: Center(
-          child: SizedBox(
-              width: 2 * dimensions.contentWidth / 3 - 8,
-              height: dimensions.contentHeight - 8,
-              child: Image.file(File(filePath),
-                  fit: BoxFit.scaleDown, alignment: Alignment.center))),
-    );
+
+    // TODO: handle other files besides images
+
+    final mimeType = lookupMimeType(filePath);
+    debugPrint('mimeType: $mimeType');
+    return Center(
+        child: SizedBox(
+            width: 2 * dimensions.contentWidth / 3 - 8,
+            height: dimensions.contentHeight - 8,
+            child: (mimeType?.startsWith('image/') ?? false)
+                ? Image.file(File(filePath),
+                    fit: BoxFit.scaleDown, alignment: Alignment.center)
+                : const SizedBox(child: Text('other'))));
   }
 
   Widget _buildCurrentDirectoryCard() {
@@ -171,29 +199,35 @@ class FileBrowserState extends State<FileBrowser> {
             style: TextStyle(
                 fontWeight: FontWeight.bold, color: colorScheme.secondary)),
         subtitle: RichText(
-          text: TextSpan(children: [
-            TextSpan(
-                text: '${path_module.dirname(currentDirectory!.path)}\n',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontFamily: 'Courier',
-                    fontWeight: FontWeight.w700,
-                    color: colorScheme.tertiary)),
-            if (filesInCurrentDirectory.isNotEmpty)
-              TextSpan(
-                  text: '${filesInCurrentDirectory.length} files, ',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.tertiary)),
-            if (directoriesInCurrentDirectory.isNotEmpty)
-              TextSpan(
-                  text: '${directoriesInCurrentDirectory.length} directories',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: colorScheme.tertiary)),
-          ]),
+          text: TextSpan(
+              style: TextStyle(color: colorScheme.tertiary),
+              children: [
+                TextSpan(
+                    text: '${path_module.dirname(currentDirectory!.path)}\n',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'Courier',
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.tertiary)),
+                if (filesInCurrentDirectory.isNotEmpty)
+                  TextSpan(
+                      text: '${filesInCurrentDirectory.length} files',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.tertiary)),
+                if (filesInCurrentDirectory.isNotEmpty &&
+                    directoriesInCurrentDirectory.isNotEmpty)
+                  const TextSpan(text: ', '),
+                if (directoriesInCurrentDirectory.isNotEmpty)
+                  TextSpan(
+                      text:
+                          '${directoriesInCurrentDirectory.length} director${directoriesInCurrentDirectory.length > 1 ? 'ies' : 'y'}',
+                      style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.tertiary)),
+              ]),
         ),
         leading: IconButton(
           icon: Icon(Icons.arrow_upward, color: colorScheme.tertiary),
@@ -216,10 +250,10 @@ class FileBrowserState extends State<FileBrowser> {
       itemCount: subdirectories.length,
       itemBuilder: (context, index) {
         final dir = subdirectories[index];
-        final dirIsAccessible = dir.isAccessible;
+        final dirIsAccessible =
+            dir.accessibilityType == DirectoryAccessibilityType.accessible;
         return Card(
-          surfaceTintColor: dirIsAccessible ? Colors.green : Colors.red,
-          color: dirIsAccessible ? null : Colors.red,
+          color: dirIsAccessible ? null : Colors.pink[50],
           child: ListTile(
             title: Text(path_module.basename(dir.path),
                 style: const TextStyle(fontWeight: FontWeight.bold)),

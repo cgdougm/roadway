@@ -29,7 +29,6 @@ class FileCard extends StatelessWidget {
             final fileInfo = snapshot.data!;
             return ListTile(
               leading: getIconForMimeType(fileInfo.mimeType),
-              enabled: fileInfo.mimeType.startsWith('text/'),
               title: Text(fileInfo.fileName,
                   style: const TextStyle(
                       fontSize: 13,
