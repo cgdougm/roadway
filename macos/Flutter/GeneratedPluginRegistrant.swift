@@ -9,7 +9,7 @@ import bitsdojo_window_macos
 import desktop_drop
 import pasteboard
 import path_provider_foundation
-import sqflite
+import sqflite_darwin
 import url_launcher_macos
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {

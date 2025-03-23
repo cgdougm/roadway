@@ -22,7 +22,10 @@ class _EntityState extends State<Entity> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: () {
+        print('Clicked asset: ${widget.item}');
+        widget.onTap();
+      },
       child: SizedBox(
         width: widget.widthUnits * 48,
         height: widget.heightUnits * 48,

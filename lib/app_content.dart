@@ -5,6 +5,7 @@ import 'package:roadway/component/data_cards.dart';
 import 'package:roadway/component/md.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:roadway/drop.dart';
+import 'package:roadway/icon/markdown.dart';
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/controller/text_file_controller.dart';
 import 'package:roadway/component/filebrowser.dart';
@@ -120,8 +121,13 @@ class _NavigatableContentState extends State<NavigatableContent> {
             ),
             destinations: const <NavigationRailDestination>[
               NavigationRailDestination(
-                icon: Icon(Icons.data_array_outlined),
-                selectedIcon: Icon(Icons.data_array),
+                icon: Icon(Icons.insert_drive_file_outlined),
+                selectedIcon: Icon(Icons.insert_drive_file),
+                label: Text('Files'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.dataset_outlined),
+                selectedIcon: Icon(Icons.dataset_rounded),
                 label: Text('Assets'),
               ),
               NavigationRailDestination(
@@ -130,9 +136,9 @@ class _NavigatableContentState extends State<NavigatableContent> {
                 label: Text('Editor'),
               ),
               NavigationRailDestination(
-                icon: Icon(Icons.star_border),
-                selectedIcon: Icon(Icons.star),
-                label: Text('Files'),
+                icon: Icon(MarkdownIcon.markdown),
+                selectedIcon: Icon(MarkdownIcon.markdown),
+                label: Text('Notes'),
               ),
             ],
           ),
@@ -144,10 +150,10 @@ class _NavigatableContentState extends State<NavigatableContent> {
             height: contentHeight,
             child: Container(
               child: switch (_selectedIndex) {
-                0 => buildDroppableDataTable(context, controller,
+                0 => const FileBrowser(),
+                1 => buildDroppableDataTable(context, controller,
                     switchToTextEditor, contentWidth, contentHeight),
-                1 => getDroppableTextEditor(context, controller),
-                2 => const FileBrowser(),
+                2 => getDroppableTextEditor(context, controller),
                 _ => const SizedBox(),
               },
             ),
