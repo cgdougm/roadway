@@ -280,6 +280,62 @@ class FileBrowserState extends State<FileBrowser> {
     );
   }
 
+  Widget _buildDirectoryPreview(Directory dir) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left column: Metadata
+        Expanded(
+          flex: 1,
+          child: SingleChildScrollView(
+            child: _buildMetadataTable(dir.path),
+          ),
+        ),
+        // Right column: File listing
+        Expanded(
+          flex: 1,
+          child: FutureBuilder<List<FileSystemEntity>>(
+            future: Future(() => dir.listSync()),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('Empty folder'));
+              }
+
+              final items = snapshot.data!;
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final isDirectory = item is Directory;
+                  final name = path_module.basename(item.path);
+
+                  return ListTile(
+                    leading: Icon(
+                      isDirectory
+                          ? Icons.folder
+                          : getIconForFilePath(item.path).icon,
+                      size: 16,
+                    ),
+                    title: Text(name,
+                        style: const TextStyle(
+                            fontSize: 12, fontFamily: 'Courier')),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSubdirectoryList() {
     final subdirectories = contents.whereType<Directory>().toList();
     return Listener(
@@ -300,15 +356,20 @@ class FileBrowserState extends State<FileBrowser> {
           return Card(
             color: dirIsAccessible ? null : Colors.pink[50],
             child: ListTile(
-              title: Text(path_module.basename(dir.path),
-                  style: const TextStyle(fontWeight: FontWeight.bold)),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_forward, size: 16),
-                onPressed: () => _navigateToDirectory(dir),
+              leading: const Icon(Icons.folder),
+              title: InkWell(
+                onTap: () => _navigateToDirectory(dir),
+                child: Text(path_module.basename(dir.path),
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
-              onTap: () {
-                // TODO: Expand to show metadata
-              },
+              trailing: IconButton(
+                icon: const Icon(Icons.info_outline, size: 16),
+                onPressed: () {
+                  setState(() {
+                    _setFilePreviewWidget(_buildDirectoryPreview(dir));
+                  });
+                },
+              ),
             ),
           );
         },
