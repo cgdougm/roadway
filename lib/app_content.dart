@@ -8,8 +8,9 @@ import 'package:roadway/drop.dart';
 import 'package:roadway/icon/markdown.dart';
 import 'package:roadway/layout/dimensions.dart';
 import 'package:roadway/controller/text_file_controller.dart';
-import 'package:roadway/component/filebrowser.dart';
+// import 'package:roadway/component/filebrowser.dart';
 import 'dart:convert';
+import 'package:roadway/component/file_tree.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -95,6 +96,16 @@ class _NavigatableContentState extends State<NavigatableContent> {
                     ],
                   ),
                 ),
+                const PopupMenuItem(
+                  value: 'files',
+                  child: Row(
+                    children: [
+                      Icon(Icons.insert_drive_file),
+                      SizedBox(width: 8),
+                      Text('Dev:Files'),
+                    ],
+                  ),
+                ),
                 const PopupMenuDivider(),
                 const PopupMenuItem(
                   value: 'about',
@@ -113,6 +124,9 @@ class _NavigatableContentState extends State<NavigatableContent> {
                   case 'settings':
                     // Add settings action
                     break;
+                  case 'files':
+                    // Add settings action
+                    break;
                   case 'about':
                     // Add about action
                     break;
@@ -120,10 +134,16 @@ class _NavigatableContentState extends State<NavigatableContent> {
               },
             ),
             destinations: const <NavigationRailDestination>[
+              // NavigationRailDestination(
+              //   icon: Icon(Icons.insert_drive_file_outlined),
+              //   selectedIcon: Icon(Icons.insert_drive_file),
+              //   label: Text('Files'),
+
+              // ),
               NavigationRailDestination(
-                icon: Icon(Icons.insert_drive_file_outlined),
-                selectedIcon: Icon(Icons.insert_drive_file),
-                label: Text('Files'),
+                icon: Icon(Icons.account_tree_outlined),
+                selectedIcon: Icon(Icons.account_tree),
+                label: Text('Tree'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.dataset_outlined),
@@ -150,7 +170,8 @@ class _NavigatableContentState extends State<NavigatableContent> {
             height: contentHeight,
             child: Container(
               child: switch (_selectedIndex) {
-                0 => const FileBrowser(),
+                // 0 => const FileBrowser(),
+                0 => const FileTree(),
                 1 => buildDroppableDataTable(context, controller,
                     switchToTextEditor, contentWidth, contentHeight),
                 2 => getDroppableTextEditor(context, controller),

@@ -73,8 +73,8 @@ class FileTreeState extends State<FileTree> {
           popUpAnimationStyle:
               AnimationStyle(duration: const Duration(milliseconds: 100)),
           position: RelativeRect.fromLTRB(
-            details.globalPosition.dx,
-            details.globalPosition.dy,
+            details.globalPosition.dx - 20,
+            details.globalPosition.dy - 20,
             details.globalPosition.dx,
             details.globalPosition.dy,
           ),
@@ -87,7 +87,12 @@ class FileTreeState extends State<FileTree> {
               value: isParentNode ? 'Explore' : 'Ingest',
               child: Text(isParentNode ? 'Explore' : 'Ingest'),
             ),
-          ],
+          ] + (isParentNode? [
+            const PopupMenuItem<String>(
+              value: 'Copy',
+              child: Text('Copy'),
+            ),
+          ] : []),
         ).then((value) {
           if (value != null && mounted) {
             // Handle menu item selection
@@ -105,6 +110,9 @@ class FileTreeState extends State<FileTree> {
               case 'Explore':
                 // Implement explore logic
                 break;
+              case 'Copy':
+                // Implement copy logic
+                break;
               default:
                 throw Exception('Invalid menu item selected');
             }
@@ -113,16 +121,16 @@ class FileTreeState extends State<FileTree> {
       },
       child: Row(
         children: <Widget>[
-          SizedBox(width: 20.0 * node.depth! + 4.0),
+          SizedBox(width: 20.0 * node.depth!),
           DecoratedBox(
             decoration: BoxDecoration(),
             child: SizedBox.square(
-              dimension: 12.0,
+              dimension: 16.0,
               child: Icon(
                 isParentNode
                     ? Icons.folder_open
-                    : Icons.file_present,
-                size: 12,
+                    : Icons.insert_drive_file_outlined,
+                size: 16,
               ),
             ),
           ),
@@ -182,12 +190,12 @@ class FileTreeState extends State<FileTree> {
                   20.0 + (node.children.isNotEmpty ? 10.0 : 0.0),
                 ),
                 recognizerFactories: _getTapRecognizer(node),
-                backgroundDecoration: TreeRowDecoration(
+                backgroundDecoration: const TreeRowDecoration(
                     ),
                 foregroundDecoration: const TreeRowDecoration(
-                    border: TreeRowBorder.all(BorderSide(
-                  width: 1,
-                ))),
+                    color: Color.fromARGB(25, 40, 40, 40),
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                ),
               );
             }
             return TreeRow(
@@ -195,7 +203,7 @@ class FileTreeState extends State<FileTree> {
                 20.0 + (node.children.isNotEmpty ? 10.0 : 0.0),
               ),
               recognizerFactories: _getTapRecognizer(node),
-              backgroundDecoration: TreeRowDecoration(
+              backgroundDecoration: const TreeRowDecoration(
                   ),
             );
           },
@@ -219,15 +227,15 @@ class FileTreeState extends State<FileTree> {
     final List<Widget> selectedChildren = <Widget>[];
     if (_selectedNode != null) {
       selectedChildren.addAll(<Widget>[
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           children: [
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Icon(
               _selectedNode!.children.isEmpty
                   ? Icons.file_present
                   : Icons.folder_outlined,
-              size: 20,
+              size: 24,
             ),
             const SizedBox(width: 5.0),
             Text(_selectedNode!.content),
@@ -240,7 +248,8 @@ class FileTreeState extends State<FileTree> {
     return Theme(
       data: Theme.of(context).copyWith(
         textTheme: Theme.of(context).textTheme.apply(
-              fontFamily: 'Courier New',
+              fontFamily: 'Courier',
+              fontSizeFactor: 1.2,
             ),
       ),
       child: Scaffold(
