@@ -1,270 +1,174 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
+import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart' as tds;
+import 'package:provider/provider.dart';
+import '../app_state.dart';
+import '../core/file_metadata_cache.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:flutter_simple_treeview/flutter_simple_treeview.dart';
 
 /// The class containing a TreeView that highlights the selected node.
 /// The custom TreeView.treeNodeBuilder makes tapping the whole row of a parent
 /// toggle the node open and closed with TreeView.toggleNodeWith. The
 /// scrollbars will appear as the content exceeds the bounds of the viewport.
 class FileTree extends StatefulWidget {
-  /// Creates a screen that demonstrates the TreeView widget.
   const FileTree({super.key});
 
   @override
-  State<FileTree> createState() => FileTreeState();
+  State<FileTree> createState() => _FileTreeState();
 }
 
 /// The state of the [FileTree].
-class FileTreeState extends State<FileTree> {
-  /// The [TreeViewController] associated with this [TreeView].
-  @visibleForTesting
-  final TreeViewController treeController = TreeViewController();
+class _FileTreeState extends State<FileTree> {
+  late TreeController _treeController;
+  String _currentCwd = '';
+  bool _isLoading = true;
 
-  /// The [ScrollController] associated with the vertical axis.
-  @visibleForTesting
-  final ScrollController verticalController = ScrollController();
+  @override
+  void initState() {
+    super.initState();
+    _treeController = TreeController(allNodesExpanded: false);
+  }
 
-  TreeViewNode<String>? _selectedNode;
-  final ScrollController _horizontalController = ScrollController();
+  List<TreeNode> _buildNodes(String dirPath) {
+    if (dirPath.isEmpty) {
+      return [TreeNode(content: const Text('Loading...'))];
+    }
 
-  // MOCK DATA
-  final List<TreeViewNode<String>> _tree = <TreeViewNode<String>>[
-    TreeViewNode<String>('README.md'),
-    TreeViewNode<String>('analysis_options.yaml'),
-    TreeViewNode<String>(
-      'lib',
-      children: <TreeViewNode<String>>[
-        TreeViewNode<String>(
-          'src',
-          children: <TreeViewNode<String>>[
-            TreeViewNode<String>(
-              'common',
-              children: <TreeViewNode<String>>[
-                TreeViewNode<String>('span.dart'),
+    final directory = Directory(dirPath);
+    if (!directory.existsSync()) {
+      return [TreeNode(content: const Text('Directory not found'))];
+    }
+
+    final List<TreeNode> nodes = [];
+    List<FileSystemEntity> entities = [];
+    
+    try {
+      entities = directory.listSync();
+    } catch (e) {
+      // Handle access denied or other errors
+      return [
+        TreeNode(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.folder_off, size: 16, color: Colors.red),
+              const SizedBox(width: 8),
+              Text(path.basename(dirPath)),
+            ],
+          ),
+        ),
+      ];
+    }
+    
+    // Sort entities: directories first, then files
+    entities.sort((a, b) {
+      if (a is Directory && b is! Directory) return -1;
+      if (a is! Directory && b is Directory) return 1;
+      return a.path.compareTo(b.path);
+    });
+
+    for (final entity in entities) {
+      final name = path.basename(entity.path);
+      if (!context.read<AppState>().showDotFiles && name.startsWith('.')) {
+        continue;
+      }
+
+      if (entity is Directory) {
+        nodes.add(TreeNode(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.folder, size: 16),
+              const SizedBox(width: 8),
+              Text(name),
+            ],
+          ),
+          children: _buildNodes(entity.path),
+        ));
+      } else {
+        nodes.add(TreeNode(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.insert_drive_file, size: 16),
+              const SizedBox(width: 8),
+              Text(name),
+            ],
+          ),
+        ));
+      }
+    }
+
+    return nodes;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AppState>(
+      builder: (context, appState, child) {
+        _currentCwd = appState.cwd;
+        return Theme(
+          data: Theme.of(context).copyWith(
+            textTheme: Theme.of(context).textTheme.apply(
+                  fontFamily: 'Courier',
+                  fontSizeFactor: 1.2,
+                ),
+          ),
+          child: Scaffold(
+            body: Column(
+              children: [
+                // Path bar at the top
+                Container(
+                  padding: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceVariant,
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.folder, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _currentCwd.isEmpty ? 'Loading...' : _currentCwd,
+                          style: const TextStyle(fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Tree view with scrolling
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
+                      child: SizedBox(
+                        width: 400,
+                        child: TreeView(
+                          treeController: _treeController,
+                          nodes: _buildNodes(_currentCwd),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
-        TreeViewNode<String>('two_dimensional_scrollables.dart'),
-      ],
-    ),
-    TreeViewNode<String>('README.md'),
-  ];
-
-  void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _treeNodeBuilder(
-    BuildContext context,
-    TreeViewNode<String> node,
-    AnimationStyle toggleAnimationStyle,
-  ) {
-    final bool isParentNode = node.children.isNotEmpty;
-    return GestureDetector(
-      onSecondaryTapDown: (details) {
-        showMenu(
-          context: context,
-          popUpAnimationStyle:
-              AnimationStyle(duration: const Duration(milliseconds: 100)),
-          position: RelativeRect.fromLTRB(
-            details.globalPosition.dx - 20,
-            details.globalPosition.dy - 20,
-            details.globalPosition.dx,
-            details.globalPosition.dy,
           ),
-          items: [
-            PopupMenuItem<String>(
-              value: isParentNode ? 'Jump' : 'View',
-              child: Text(isParentNode ? 'Jump' : 'View'),
-            ),
-            PopupMenuItem<String>(
-              value: isParentNode ? 'Explore' : 'Ingest',
-              child: Text(isParentNode ? 'Explore' : 'Ingest'),
-            ),
-          ] + (isParentNode? [
-            const PopupMenuItem<String>(
-              value: 'Copy',
-              child: Text('Copy'),
-            ),
-          ] : []),
-        ).then((value) {
-          if (value != null && mounted) {
-            // Handle menu item selection
-            switch (value) {
-              case 'View':
-                // Implement view logic
-                break;
-              case 'Ingest':
-                // Navigator.of(context).pop(); // THROWS ERROR and black screen
-                _showSnackBar(context, 'Ingesting: ${node.content}');
-                break;
-              case 'Jump':
-                // Implement jump logic
-                break;
-              case 'Explore':
-                // Implement explore logic
-                break;
-              case 'Copy':
-                // Implement copy logic
-                break;
-              default:
-                throw Exception('Invalid menu item selected');
-            }
-          }
-        });
+        );
       },
-      child: Row(
-        children: <Widget>[
-          SizedBox(width: 20.0 * node.depth!),
-          DecoratedBox(
-            decoration: BoxDecoration(),
-            child: SizedBox.square(
-              dimension: 16.0,
-              child: Icon(
-                isParentNode
-                    ? Icons.folder_open
-                    : Icons.insert_drive_file_outlined,
-                size: 16,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6.0),
-          Text(node.content),
-        ],
-      ),
-    );
-  }
-
-
-
-  Map<Type, GestureRecognizerFactory> _getTapRecognizer(
-    TreeViewNode<String> node,
-  ) {
-    return <Type, GestureRecognizerFactory>{
-      TapGestureRecognizer:
-          GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
-        () => TapGestureRecognizer(),
-        (TapGestureRecognizer t) => t.onTap = () {
-          setState(() {
-            treeController.toggleNode(node);
-            _selectedNode = node;
-          });
-        },
-      ),
-    };
-  }
-
-  Widget _getTree() {
-    return Scrollbar(
-      controller: _horizontalController,
-      thumbVisibility: true,
-      child: Scrollbar(
-        controller: verticalController,
-        thumbVisibility: true,
-        child: TreeView<String>(
-          controller: treeController,
-          verticalDetails: ScrollableDetails.vertical(
-            controller: verticalController,
-          ),
-          horizontalDetails: ScrollableDetails.horizontal(
-            controller: _horizontalController,
-          ),
-          tree: _tree,
-          onNodeToggle: (TreeViewNode<String> node) {
-            setState(() {
-              _selectedNode = node;
-            });
-          },
-          treeNodeBuilder: _treeNodeBuilder,
-          treeRowBuilder: (TreeViewNode<String> node) {
-            // Selected node
-            if (_selectedNode == node) {
-              return TreeRow(
-                extent: FixedTreeRowExtent(
-                  20.0 + (node.children.isNotEmpty ? 10.0 : 0.0),
-                ),
-                recognizerFactories: _getTapRecognizer(node),
-                backgroundDecoration: const TreeRowDecoration(
-                    ),
-                foregroundDecoration: const TreeRowDecoration(
-                    color: Color.fromARGB(25, 40, 40, 40),
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                ),
-              );
-            }
-            return TreeRow(
-              extent: FixedTreeRowExtent(
-                20.0 + (node.children.isNotEmpty ? 10.0 : 0.0),
-              ),
-              recognizerFactories: _getTapRecognizer(node),
-              backgroundDecoration: const TreeRowDecoration(
-                  ),
-            );
-          },
-          // No internal indentation, the custom treeNodeBuilder applies its
-          // own indentation to decorate in the indented space.
-          indentation: TreeViewIndentationType.none,
-        ),
-      ),
     );
   }
 
   @override
   void dispose() {
-    verticalController.dispose();
-    _horizontalController.dispose();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Widget> selectedChildren = <Widget>[];
-    if (_selectedNode != null) {
-      selectedChildren.addAll(<Widget>[
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            const SizedBox(width: 12),
-            Icon(
-              _selectedNode!.children.isEmpty
-                  ? Icons.file_present
-                  : Icons.folder_outlined,
-              size: 24,
-            ),
-            const SizedBox(width: 5.0),
-            Text(_selectedNode!.content),
-            Spacer(),
-          ],
-        ),
-        const Spacer(),
-      ]);
-    }
-    return Theme(
-      data: Theme.of(context).copyWith(
-        textTheme: Theme.of(context).textTheme.apply(
-              fontFamily: 'Courier',
-              fontSizeFactor: 1.2,
-            ),
-      ),
-      child: Scaffold(
-        body: ScrollConfiguration(
-          behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20),
-            child: SizedBox(
-              width: 400,
-              height: double.infinity,
-              child: _getTree(),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

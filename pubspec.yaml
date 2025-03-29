@@ -53,6 +53,7 @@ dependencies:
   metadata_fetch: ^0.4.2
   path_provider: ^2.1.1
   two_dimensional_scrollables: ^0.3.3
+  flutter_simple_treeview: ^3.0.2
 
 dev_dependencies:
   flutter_test:

@@ -6,11 +6,14 @@ import 'package:roadway/core/db.dart';
 import 'package:roadway/core/theme.dart';
 import 'package:roadway/component/filebrowser.dart';
 import 'package:roadway/app_content.dart';
+import 'package:roadway/core/file_metadata_cache.dart';
+import 'package:roadway/core/idle_worker.dart';
 // toggle diagnostic view
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await DatabaseHelper.instance.database; // warm up DB, cache
+  await FileMetadataCache.instance.initialize();
 
   runApp(
     MultiProvider(

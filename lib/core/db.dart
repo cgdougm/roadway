@@ -1,46 +1,49 @@
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io' show Platform;
+import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
-  static final DatabaseHelper instance = DatabaseHelper._init();
+  static final DatabaseHelper instance = DatabaseHelper._();
   static Database? _database;
 
-  DatabaseHelper._init();
+  DatabaseHelper._();
 
   Future<Database> get database async {
     if (_database != null) {
       return _database!;
     }
-    _database = await _initDB('app_database.db');
+    _database = await _initDatabase();
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
+  Future<Database> _initDatabase() async {
     // Initialize FFI for desktop platforms
     if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
     }
 
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-    print('Database path: $path');
-    return await openDatabase(path, version: 1, onCreate: _createDB);
+    final String path = join(await getDatabasesPath(), 'roadway.db');
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _createDb,
+    );
   }
 
-  Future<void> _createDB(Database db, int version) async {
-
+  Future<void> _createDb(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS items (
-        id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        value TEXT NOT NULL,
+      CREATE TABLE items (
+        uniqueId TEXT PRIMARY KEY,
+        type TEXT,
+        path TEXT,
         parent TEXT
       )
     ''');
+
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS file_info(
+      CREATE TABLE file_info (
         filePath TEXT PRIMARY KEY,
         fileName TEXT,
         fileExt TEXT,
@@ -58,6 +61,27 @@ class DatabaseHelper {
         imageError TEXT
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE app_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE directory_visits (
+        path TEXT PRIMARY KEY,
+        visitTime TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> close() async {
@@ -66,28 +90,32 @@ class DatabaseHelper {
     _database = null;
   }
 
-  Future<void> insertItem(String id, String type, String value, {String? parent}) async {
+  Future<void> insertItemIfNotExists(String uniqueId, String type, String path, {String? parent}) async {
     final db = await database;
-    await db.insert('items', {
-      'id': id,
-      'type': type,
-      'value': value,
-      'parent': parent,
-    });
+    await db.insert(
+      'items',
+      {
+        'uniqueId': uniqueId,
+        'type': type,
+        'path': path,
+        'parent': parent,
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
   }
 
-  Future<void> deleteItem(String id) async {
+  Future<void> deleteItem(String uniqueId) async {
     final db = await database;
     await db.delete(
       'items',
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'uniqueId = ?',
+      whereArgs: [uniqueId],
     );
   }
 
   Future<List<Map<String, dynamic>>> getDbItems() async {
     final db = await database;
-    return db.query('items');
+    return await db.query('items');
   }
 
   Future<bool> itemExists(String id) async {
@@ -99,19 +127,6 @@ class DatabaseHelper {
       limit: 1,
     );
     return result.isNotEmpty;
-  }
-
-  Future<void> insertItemIfNotExists(String id, String type, String value, {String? parent}) async {
-    final db = await database;
-    final exists = await itemExists(id);
-    if (!exists) {
-      await db.insert('items', {
-        'id': id,
-        'type': type,
-        'value': value,
-        'parent': parent,
-      });
-    }
   }
 
   Future<Map<String, dynamic>?> getItem(String id) async {
@@ -143,12 +158,33 @@ class DatabaseHelper {
   }
 
   Future<List<Map<String, dynamic>>> getFileItemsWithPath(String filePath) async {
-      final db = await database;
-      return await db.query(
-        'file_info',
-        where: 'filePath = ?',
-        whereArgs: [filePath],
-      );
+    final db = await database;
+    return await db.query(
+      'file_info',
+      where: 'filePath = ?',
+      whereArgs: [filePath],
+    );
+  }
+
+  // Settings methods
+  Future<void> setSetting(String key, String value) async {
+    final db = await database;
+    await db.insert(
+      'settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<String?> getSetting(String key) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'settings',
+      where: 'key = ?',
+      whereArgs: [key],
+    );
+    if (maps.isEmpty) return null;
+    return maps.first['value'] as String;
   }
 }
 
